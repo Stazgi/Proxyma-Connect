@@ -1,581 +1,117 @@
 package com.v2ray.ang.ui.main
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.v2ray.ang.R
-import kotlinx.coroutines.launch
-
-private const val PROXYMA_SUB_BASE_URL = "https://duckdns.org"
-
-// Фирменная палитра Proxyma Connect
-private val BgDarkTop = Color(0xFF0B0F19)
-private val BgDarkBottom = Color(0xFF131B2E)
-private val CardSurface = Color(0xFF1A233A)
-private val CardBorder = Color(0xFF2B395C)
-private val AccentCyan = Color(0xFF00E5FF)
-private val AccentIndigo = Color(0xFF6366F1)
-private val ConnectedGreen = Color(0xFF10B981)
-private val TextPrimary = Color(0xFFF8FAFC)
-private val TextSecondary = Color(0xFF94A3B8)
+import com.v2ray.ang.ui.compose.AppTopBar
+import com.v2ray.ang.ui.compose.verticalScrollbar
 
 @Composable
-fun MainScreen(
-    mainViewModel: MainViewModel,
+fun MainTopBar(
+    isLoading: Boolean,
+    showSearch: Boolean,
+    searchQuery: String,
+    onSearchQueryChange: (String) -> Unit,
+    onSearchClose: () -> Unit,
+    onSearchToggle: (Boolean) -> Unit,
+    onMenuClick: () -> Unit,
     onAction: (MainAction) -> Unit,
-    onNavigate: (MainDestination) -> Unit,
+    onMoreMenuAction: (MainMoreMenuAction) -> Unit
 ) {
-    val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
-    val isLoading by mainViewModel.isLoading.collectAsStateWithLifecycle()
-    val groups = uiState.groups
-    val activeGroup = groups.firstOrNull { it.id == uiState.selectedGroupId } ?: groups.firstOrNull()
-    val serversState = if (activeGroup != null) {
-        mainViewModel.serversForGroup(activeGroup.id).collectAsStateWithLifecycle()
-    } else {
-        remember { mutableStateOf(emptyList()) }
-    }
-    val servers = serversState.value
+    var showImportMenu by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
+    val importMenuScrollState = rememberScrollState()
+    val moreMenuScrollState = rememberScrollState()
+    val statusBarHeight = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val navBarHeight = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    val maxMenuHeight = LocalConfiguration.current.screenHeightDp.dp - statusBarHeight - navBarHeight - 20.dp
 
-    val isRunning = uiState.isRunning
-    val selectedGuid = uiState.selectedGuid
-    val statusText = mainViewModel.formatStatus(uiState.status)
-
-    LaunchedEffect(servers, selectedGuid) {
-        if (servers.isNotEmpty() && (selectedGuid.isNullOrEmpty() || servers.none { it.guid == selectedGuid })) {
-            onAction(MainAction.SelectServer(servers.first().guid))
-        }
-    }
-
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
-    var showKeyDialog by remember { mutableStateOf(false) }
-
-    if (showKeyDialog) {
-        KeyInputDialog(
-            isLoading = isLoading,
-            onDismiss = { showKeyDialog = false },
-            onActivate = { uuid ->
-                val cleanKey = uuid.trim()
-                if (cleanKey.isNotEmpty()) {
-                    val fullUrl = if (cleanKey.startsWith("http")) cleanKey else "$PROXYMA_SUB_BASE_URL$cleanKey"
-                    onAction(MainAction.RemoveAllServers)
-                    onAction(MainAction.ImportBatchConfig(fullUrl))
-                    showKeyDialog = false
+    AppTopBar(
+        title = stringResource(R.string.title_server),
+        onBackClick = {},
+        isLoading = isLoading,
+        isSearchActive = showSearch,
+        searchQuery = searchQuery,
+        onSearchQueryChange = onSearchQueryChange,
+        onSearchClose = onSearchClose,
+        searchPlaceholder = stringResource(R.string.menu_item_search),
+        navigationIcon = {
+            if (showSearch) {
+                IconButton(onClick = onSearchClose) {
+                    Icon(painterResource(R.drawable.ic_arrow_back_24dp), contentDescription = stringResource(R.string.acc_back))
                 }
-            }
-        )
-    }
-        ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            MainDrawerContent(
-                drawerState = drawerState,
-                onNavigate = { route ->
-                    scope.launch { drawerState.close() }
-                    onNavigate(route)
-                }
-            )
-        }
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(BgDarkTop, BgDarkBottom)))
-                .systemBarsPadding()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            modifier = Modifier
-                                .size(38.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(Brush.linearGradient(listOf(AccentCyan, AccentIndigo))),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "P",
-                                color = Color.White,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.ExtraBold
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Column {
-                            Text(
-                                text = "Proxyma Connect",
-                                color = TextPrimary,
-                                fontSize = 19.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Text(
-                                text = "Защищённый туннель",
-                                color = AccentCyan,
-                                fontSize = 11.sp,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-
-                    Row {
-                        IconButton(onClick = { showKeyDialog = true }) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_add_24dp),
-                                contentDescription = "Ключ доступа",
-                                tint = TextPrimary
-                            )
-                        }
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_menu_24dp),
-                                contentDescription = "Меню",
-                                tint = TextSecondary
-                            )
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                if (servers.isEmpty() && !isLoading) {
-                    EmptyActivationCard(
-                        onActivate = { uuid ->
-                            val cleanKey = uuid.trim()
-                            if (cleanKey.isNotEmpty()) {
-                                val fullUrl = if (cleanKey.startsWith("http")) cleanKey else "$PROXYMA_SUB_BASE_URL$cleanKey"
-                                onAction(MainAction.ImportBatchConfig(fullUrl))
-                            }
-                        }
-                    )
-                } else {
-                    SubscriptionStatusCard(
-                        groupRemarks = activeGroup?.remarks,
-                        isLoading = isLoading,
-                        onRefresh = { onAction(MainAction.UpdateSubscriptions) }
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    PowerConnectButton(
-                        isRunning = isRunning,
-                        isLoading = isLoading,
-                        statusText = statusText,
-                        onToggle = { onAction(MainAction.ToggleService) },
-                        onTestPing = { onAction(MainAction.TestCurrentServer) }
-                    )
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Доступные локации",
-                            color = TextPrimary,
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "${servers.size} шт.",
-                            color = TextSecondary,
-                            fontSize = 13.sp
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    LazyColumn(
-                        modifier = Modifier.fillMaxWidth().weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        items(servers, key = { it.guid }) { server ->
-                            val isSelected = server.guid == selectedGuid
-                            ServerLocationCard(
-                                name = server.profile.remarks.ifBlank { "Сервер Proxyma" },
-                                protocol = server.profile.configType.name,
-                                delayMillis = server.testDelayMillis,
-                                isSelected = isSelected,
-                                onClick = { onAction(MainAction.SelectServer(server.guid)) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-@Composable
-private fun EmptyActivationCard(onActivate: (String) -> Unit) {
-    var inputKey by remember { mutableStateOf("") }
-    val clipboard = LocalClipboardManager.current
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            color = CardSurface,
-            border = BorderStroke(1.dp, CardBorder)
-        ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "🔑",
-                    fontSize = 36.sp
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                Text(
-                    text = "Активация доступа",
-                    color = TextPrimary,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.height(6.dp))
-                Text(
-                    text = "Скопируйте ключ (UUID) в Telegram-боте Proxyma VPN и вставьте его ниже",
-                    color = TextSecondary,
-                    fontSize = 13.sp,
-                    textAlign = TextAlign.Center
-                )
-                Spacer(modifier = Modifier.height(20.dp))
-
-                OutlinedTextField(
-                    value = inputKey,
-                    onValueChange = { inputKey = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Например: ce348496-200d-...", color = TextSecondary, fontSize = 13.sp) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(14.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        focusedBorderColor = AccentCyan,
-                        unfocusedBorderColor = CardBorder,
-                        cursorColor = AccentCyan
-                    )
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                TextButton(
-                    onClick = { clipboard.getText()?.text?.let { inputKey = it.trim() } }
-                ) {
-                    Text("Вставить из буфера обмена", color = AccentCyan, fontSize = 13.sp)
-                }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Button(
-                    onClick = { onActivate(inputKey) },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentIndigo)
-                ) {
-                    Text(
-                        text = "Активировать ключ",
-                        color = Color.White,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SubscriptionStatusCard(
-    groupRemarks: String?,
-    isLoading: Boolean,
-    onRefresh: () -> Unit
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = CardSurface,
-        border = BorderStroke(1.dp, CardBorder)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = groupRemarks?.takeIf { it.isNotBlank() } ?: "Подписка Proxyma VPN",
-                    color = TextPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Ключ активен • Нажмите ↻ чтобы обновить серверы",
-                    color = TextSecondary,
-                    fontSize = 12.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(22.dp),
-                    color = AccentCyan,
-                    strokeWidth = 2.dp
-                )
             } else {
-                IconButton(onClick = onRefresh) {
-                    Text(
-                        text = "↻",
-                        color = AccentCyan,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
+                IconButton(onClick = onMenuClick) {
+                    Icon(painterResource(R.drawable.ic_menu_24dp), contentDescription = stringResource(R.string.acc_open_menu))
+                }
+            }
+        },
+        actions = {
+            if (!showSearch) {
+                IconButton(onClick = { onSearchToggle(true) }) {
+                    Icon(painterResource(R.drawable.ic_search_24dp), contentDescription = stringResource(R.string.acc_search))
+                }
+            }
+            Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
+                IconButton(onClick = { showImportMenu = true }) {
+                    Icon(painterResource(R.drawable.ic_add_24dp), contentDescription = stringResource(R.string.acc_add))
+                }
+                DropdownMenu(
+                    expanded = showImportMenu,
+                    onDismissRequest = { showImportMenu = false },
+                    scrollState = importMenuScrollState,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier
+                        .heightIn(max = maxMenuHeight)
+                        .verticalScrollbar(importMenuScrollState)
+                ) {
+                    ImportMenuContent(
+                        onAction = { action ->
+                            showImportMenu = false
+                            onAction(action)
+                        }
                     )
                 }
             }
-        }
-    }
-}
-@Composable
-private fun PowerConnectButton(
-    isRunning: Boolean,
-    isLoading: Boolean,
-    statusText: String,
-    onToggle: () -> Unit,
-    onTestPing: () -> Unit
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 1f,
-        targetValue = if (isRunning) 1.08f else 1.02f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(1400),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "scale"
-    )
-
-    val ringColor by animateColorAsState(
-        targetValue = if (isRunning) ConnectedGreen else AccentIndigo,
-        animationSpec = tween(400),
-        label = "ringColor"
-    )
-
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(contentAlignment = Alignment.Center) {
-            Box(
-                modifier = Modifier
-                    .size(164.dp)
-                    .scale(pulseScale)
-                    .clip(CircleShape)
-                    .background(ringColor.copy(alpha = 0.16f))
-            )
-            Surface(
-                modifier = Modifier
-                    .size(134.dp)
-                    .clip(CircleShape)
-                    .clickable { onToggle() },
-                shape = CircleShape,
-                color = if (isRunning) ConnectedGreen else CardSurface,
-                border = BorderStroke(3.dp, ringColor),
-                shadowElevation = 12.dp
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (isLoading) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(42.dp))
-                    } else {
-                        Text(
-                            text = if (isRunning) "ON" else "OFF",
-                            color = Color.White,
-                            fontSize = 26.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 2.sp
-                        )
+            Box(modifier = Modifier.wrapContentSize(Alignment.TopEnd)) {
+                IconButton(onClick = { showMenu = true }) {
+                    Icon(painterResource(R.drawable.ic_more_vert_24dp), contentDescription = stringResource(R.string.acc_more))
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false },
+                    scrollState = moreMenuScrollState,
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    modifier = Modifier
+                        .heightIn(max = maxMenuHeight)
+                        .verticalScrollbar(moreMenuScrollState)
+                ) {
+                    MoreMenuContent { action ->
+                        showMenu = false
+                        onMoreMenuAction(action)
                     }
                 }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        Text(
-            text = if (isRunning) "ЗАЩИТА ВКЛЮЧЕНА" else "НЕ ПОДКЛЮЧЕНО",
-            color = if (isRunning) ConnectedGreen else TextSecondary,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp
-        )
-
-        Spacer(modifier = Modifier.height(4.dp))
-
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clip(RoundedCornerShape(12.dp))
-                .clickable { if (isRunning) onTestPing() }
-                .padding(horizontal = 10.dp, vertical = 4.dp)
-        ) {
-            Text(
-                text = if (isRunning) "⚡ $statusText" else statusText,
-                color = TextSecondary,
-                fontSize = 12.sp,
-                textAlign = TextAlign.Center
-            )
-        }
-    }
-}
-
-@Composable
-private fun ServerLocationCard(
-    name: String,
-    protocol: String,
-    delayMillis: Long,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) CardSurface.copy(alpha = 0.95f) else CardSurface.copy(alpha = 0.55f),
-        border = BorderStroke(
-            width = if (isSelected) 1.5.dp else 1.dp,
-            color = if (isSelected) AccentCyan else CardBorder
-        )
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = name,
-                    color = TextPrimary,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = if (delayMillis > 0) "Пинг: ${delayMillis} мс" else "Протокол $protocol",
-                    color = if (delayMillis > 0) ConnectedGreen else TextSecondary,
-                    fontSize = 12.sp
-                )
-            }
-
-            if (isSelected) {
-                Text(
-                    text = "✓",
-                    color = AccentCyan,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun KeyInputDialog(
-    isLoading: Boolean,
-    onDismiss: () -> Unit,
-    onActivate: (String) -> Unit
-) {
-    var keyText by remember { mutableStateOf("") }
-    val clipboard = LocalClipboardManager.current
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        containerColor = CardSurface,
-        title = {
-            Text("Сменить ключ доступа", color = TextPrimary, fontWeight = FontWeight.Bold)
-        },
-        text = {
-            Column {
-                Text(
-                    "Вставьте новый UUID из бота Proxyma VPN:",
-                    color = TextSecondary,
-                    fontSize = 13.sp
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = keyText,
-                    onValueChange = { keyText = it },
-                    singleLine = true,
-                    placeholder = { Text("ce348496-200d-...", color = TextSecondary, fontSize = 12.sp) },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        focusedBorderColor = AccentCyan,
-                        unfocusedBorderColor = CardBorder
-                    )
-                )
-                TextButton(
-                    onClick = { clipboard.getText()?.text?.let { keyText = it.trim() } }
-                ) {
-                    Text("Вставить из буфера", color = AccentCyan, fontSize = 12.sp)
-                }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onActivate(keyText) },
-                enabled = !isLoading && keyText.isNotBlank(),
-                colors = ButtonDefaults.buttonColors(containerColor = AccentIndigo)
-            ) {
-                Text("Применить", color = Color.White)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Отмена", color = TextSecondary)
             }
         }
     )
