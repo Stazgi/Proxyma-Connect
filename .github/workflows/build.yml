@@ -70,6 +70,3 @@ jobs:
       with:
         name: Proxyma-Connect-armeabi-v7a-32bit
         path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/fdroid/debug/*armeabi-v7a*.apk
-        
-
-    
