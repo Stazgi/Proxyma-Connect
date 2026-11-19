@@ -375,51 +375,78 @@ private fun SubscriptionStatusCard(
 }
 
 @Composable
-private fun SubscriptionStatusCard(
-    groupRemarks: String?,
-    isLoading: Boolean,
-    onRefresh: () -> Unit
-) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
-        color = CardSurface,
-        border = BorderStroke(1.dp, CardBorder)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = groupRemarks?.takeIf { it.isNotBlank() } ?: "Подписка Proxyma VPN",
-                    color = TextPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Ключ активен • Нажмите ↻ чтобы обновить серверы",
-                    color = TextSecondary,
-                    fontSize = 12.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+private fun EmptyActivationCard(onActivate: (String) -> Unit) {
+    var inputKey by remember { mutableStateOf("") }
+    val clipboard = LocalClipboardManager.current
 
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(22.dp),
-                    color = AccentCyan,
-                    strokeWidth = 2.dp
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(24.dp),
+            color = CardSurface,
+            border = BorderStroke(1.dp, CardBorder)
+        ) {
+            Column(
+                modifier = Modifier.padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(text = "🔑", fontSize = 36.sp)
+                Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Активация доступа",
+                    color = TextPrimary,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
                 )
-            } else {
-                IconButton(onClick = onRefresh) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = "Скопируйте ключ (UUID) в Telegram-боте Proxyma VPN и вставьте его ниже",
+                    color = TextSecondary,
+                    fontSize = 13.sp,
+                    textAlign = TextAlign.Center
+                )
+                Spacer(modifier = Modifier.height(20.dp))
+
+                OutlinedTextField(
+                    value = inputKey,
+                    onValueChange = { inputKey = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    placeholder = { Text("Например: ce348496-200d-...", color = TextSecondary, fontSize = 13.sp) },
+                    singleLine = true,
+                    shape = RoundedCornerShape(14.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedBorderColor = AccentCyan,
+                        unfocusedBorderColor = CardBorder,
+                        cursorColor = AccentCyan
+                    )
+                )
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                TextButton(
+                    onClick = { clipboard.getText()?.text?.let { inputKey = it.trim() } }
+                ) {
+                    Text("Вставить из буфера обмена", color = AccentCyan, fontSize = 13.sp)
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
+
+                Button(
+                    onClick = { onActivate(inputKey) },
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentIndigo)
+                ) {
                     Text(
-                        text = "↻",
-                        color = AccentCyan,
-                        fontSize = 22.sp,
+                        text = "Активировать ключ",
+                        color = Color.White,
+                        fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -427,6 +454,7 @@ private fun SubscriptionStatusCard(
         }
     }
 }
+    
 @Composable
 private fun PowerConnectButton(
     isRunning: Boolean,
