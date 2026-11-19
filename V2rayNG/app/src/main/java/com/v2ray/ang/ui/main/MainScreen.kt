@@ -233,11 +233,23 @@ fun MainScreen(
                         onActivate = { uuid -> activateKey(uuid) }
                     )
                 } else {
-                    SubscriptionStatusCard(
+                        SubscriptionStatusCard(
                         groupRemarks = activeGroup?.remarks,
                         isLoading = isLoading,
-                        onRefresh = { onAction(MainAction.UpdateSubscriptions) }
+                        onRefresh = { onAction(MainAction.UpdateSubscriptions) },
+                        onDeleteSub = {
+                            scope.launch(Dispatchers.IO) {
+                                MmkvManager.decodeSubscriptions().forEach { cache ->
+                                    SettingsManager.removeSubscriptionWithDefault(cache.guid)
+                                }
+                                withContext(Dispatchers.Main) {
+                                    onAction(MainAction.RemoveAllServers)
+                                    onAction(MainAction.RefreshGroups)
+                                }
+                            }
+                        }
                     )
+                                        
 
                     Spacer(modifier = Modifier.height(24.dp))
 
@@ -292,78 +304,68 @@ fun MainScreen(
     }
 }
 @Composable
-private fun EmptyActivationCard(onActivate: (String) -> Unit) {
-    var inputKey by remember { mutableStateOf("") }
-    val clipboard = LocalClipboardManager.current
+private fun SubscriptionStatusCard(
+    groupRemarks: String?,
+    isLoading: Boolean,
+    onRefresh: () -> Unit,
+    onDeleteSub: () -> Unit
+) {
+    val title = if (groupRemarks.isNullOrBlank() || groupRemarks.equals("Default", ignoreCase = true)) {
+        "Подписка Proxyma VPN"
+    } else {
+        groupRemarks
+    }
 
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = CardSurface,
+        border = BorderStroke(1.dp, CardBorder)
     ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
-            color = CardSurface,
-            border = BorderStroke(1.dp, CardBorder)
+        Row(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Column(
-                modifier = Modifier.padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(text = "🔑", fontSize = 36.sp)
-                Spacer(modifier = Modifier.height(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Активация доступа",
+                    text = title,
                     color = TextPrimary,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.SemiBold
                 )
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Скопируйте ключ (UUID) в Telegram-боте Proxyma VPN и вставьте его ниже",
+                    text = "Ключ активен • Нажмите ↻ для обновления",
                     color = TextSecondary,
-                    fontSize = 13.sp,
-                    textAlign = TextAlign.Center
+                    fontSize = 12.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(20.dp))
+            }
 
-                OutlinedTextField(
-                    value = inputKey,
-                    onValueChange = { inputKey = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Например: ce348496-200d-...", color = TextSecondary, fontSize = 13.sp) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(14.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        focusedBorderColor = AccentCyan,
-                        unfocusedBorderColor = CardBorder,
-                        cursorColor = AccentCyan
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(22.dp),
+                        color = AccentCyan,
+                        strokeWidth = 2.dp
                     )
-                )
-
-                Spacer(modifier = Modifier.height(10.dp))
-
-                TextButton(
-                    onClick = { clipboard.getText()?.text?.let { inputKey = it.trim() } }
-                ) {
-                    Text("Вставить из буфера обмена", color = AccentCyan, fontSize = 13.sp)
+                } else {
+                    IconButton(onClick = onRefresh) {
+                        Text(
+                            text = "↻",
+                            color = AccentCyan,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                Button(
-                    onClick = { onActivate(inputKey) },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = AccentIndigo)
-                ) {
+                IconButton(onClick = onDeleteSub) {
                     Text(
-                        text = "Активировать ключ",
-                        color = Color.White,
-                        fontSize = 16.sp,
+                        text = "✕",
+                        color = Color(0xFFEF4444),
+                        fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                 }
