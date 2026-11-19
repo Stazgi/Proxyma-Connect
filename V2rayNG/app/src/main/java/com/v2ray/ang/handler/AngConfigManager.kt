@@ -305,21 +305,30 @@ private fun commitProfiles(
     val keyToProfile = linkedMapOf<String, ProfileItem>()
     val rawConfigs = mutableMapOf<String, String>()
     
-    // Хэш-сет для запоминания уникальных серверов в этой пачке
+    // Хранилище уникальных отпечатков серверов
     val uniqueIdentities = HashSet<String>()
 
     configs.forEach { parsed ->
-        // Создаем уникальный ключ из основных параметров сервера
-        val identity = "${parsed.profile.server}:${parsed.profile.serverPort}:${parsed.profile.password}:${parsed.profile.configType}"
+        val p = parsed.profile
+        // Собираем ВСЕ ключевые параметры в одну строку
+        val identity = "${p.server}:${p.serverPort}:${p.password}:${p.configType}:${p.network}:${p.security}:${p.sni}:${p.publicKey}"
         
-        // Если такого сервера еще нет в текущей загрузке — добавляем
+        // Если такого сервера еще нет — добавляем
         if (!uniqueIdentities.contains(identity)) {
             uniqueIdentities.add(identity)
             val key = Utils.getUuid()
-            keyToProfile[key] = parsed.profile
+            keyToProfile[key] = p
             parsed.rawConfig?.let { raw -> rawConfigs[key] = raw }
         }
     }
+
+    MmkvManager.saveServerProfiles(
+        profiles = keyToProfile,
+        rawConfigs = rawConfigs,
+        subscriptionId = subid,
+        append = append,
+    )
+}
 
     MmkvManager.saveServerProfiles(
         profiles = keyToProfile,
