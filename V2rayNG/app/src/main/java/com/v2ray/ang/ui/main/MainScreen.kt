@@ -14,14 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Key
-import androidx.compose.material.icons.rounded.PowerSettingsNew
-import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Shield
-import androidx.compose.material.icons.rounded.Speed
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,12 +23,14 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.v2ray.ang.R
 import kotlinx.coroutines.launch
 
 private const val PROXYMA_SUB_BASE_URL = "https://duckdns.org"
@@ -98,7 +92,7 @@ fun MainScreen(
             }
         )
     }
-    ModalNavigationDrawer(
+        ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             MainDrawerContent(
@@ -135,11 +129,11 @@ fun MainScreen(
                                 .background(Brush.linearGradient(listOf(AccentCyan, AccentIndigo))),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Rounded.Shield,
-                                contentDescription = null,
-                                tint = Color.White,
-                                modifier = Modifier.size(22.dp)
+                            Text(
+                                text = "P",
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold
                             )
                         }
                         Spacer(modifier = Modifier.width(12.dp))
@@ -161,10 +155,18 @@ fun MainScreen(
 
                     Row {
                         IconButton(onClick = { showKeyDialog = true }) {
-                            Icon(Icons.Rounded.Key, contentDescription = "Ключ доступа", tint = TextPrimary)
+                            Icon(
+                                painter = painterResource(R.drawable.ic_add_24dp),
+                                contentDescription = "Ключ доступа",
+                                tint = TextPrimary
+                            )
                         }
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                            Icon(Icons.Rounded.Settings, contentDescription = "Меню", tint = TextSecondary)
+                            Icon(
+                                painter = painterResource(R.drawable.ic_menu_24dp),
+                                contentDescription = "Меню",
+                                tint = TextSecondary
+                            )
                         }
                     }
                 }
@@ -183,7 +185,7 @@ fun MainScreen(
                     )
                 } else {
                     SubscriptionStatusCard(
-                        usageInfo = activeGroup?.usageInfo,
+                        groupRemarks = activeGroup?.remarks,
                         isLoading = isLoading,
                         onRefresh = { onAction(MainAction.UpdateSubscriptions) }
                     )
@@ -260,13 +262,11 @@ private fun EmptyActivationCard(onActivate: (String) -> Unit) {
                 modifier = Modifier.padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Icon(
-                    imageVector = Icons.Rounded.Key,
-                    contentDescription = null,
-                    tint = AccentCyan,
-                    modifier = Modifier.size(44.dp)
+                Text(
+                    text = "🔑",
+                    fontSize = 36.sp
                 )
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "Активация доступа",
                     color = TextPrimary,
@@ -328,7 +328,7 @@ private fun EmptyActivationCard(onActivate: (String) -> Unit) {
 
 @Composable
 private fun SubscriptionStatusCard(
-    usageInfo: String?,
+    groupRemarks: String?,
     isLoading: Boolean,
     onRefresh: () -> Unit
 ) {
@@ -345,14 +345,14 @@ private fun SubscriptionStatusCard(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Подписка Proxyma VPN",
+                    text = groupRemarks?.takeIf { it.isNotBlank() } ?: "Подписка Proxyma VPN",
                     color = TextPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = usageInfo?.takeIf { it.isNotBlank() } ?: "Активна • Нажмите обновить для проверки трафика",
+                    text = "Ключ активен • Нажмите ↻ чтобы обновить серверы",
                     color = TextSecondary,
                     fontSize = 12.sp,
                     maxLines = 2,
@@ -368,7 +368,12 @@ private fun SubscriptionStatusCard(
                 )
             } else {
                 IconButton(onClick = onRefresh) {
-                    Icon(Icons.Rounded.Refresh, contentDescription = "Обновить", tint = AccentCyan)
+                    Text(
+                        text = "↻",
+                        color = AccentCyan,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         }
@@ -422,11 +427,12 @@ private fun PowerConnectButton(
                     if (isLoading) {
                         CircularProgressIndicator(color = Color.White, modifier = Modifier.size(42.dp))
                     } else {
-                        Icon(
-                            imageVector = Icons.Rounded.PowerSettingsNew,
-                            contentDescription = "Подключить",
-                            tint = Color.White,
-                            modifier = Modifier.size(54.dp)
+                        Text(
+                            text = if (isRunning) "ON" else "OFF",
+                            color = Color.White,
+                            fontSize = 26.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 2.sp
                         )
                     }
                 }
@@ -452,12 +458,8 @@ private fun PowerConnectButton(
                 .clickable { if (isRunning) onTestPing() }
                 .padding(horizontal = 10.dp, vertical = 4.dp)
         ) {
-            if (isRunning) {
-                Icon(Icons.Rounded.Speed, contentDescription = null, tint = AccentCyan, modifier = Modifier.size(15.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-            }
             Text(
-                text = statusText,
+                text = if (isRunning) "⚡ $statusText" else statusText,
                 color = TextSecondary,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
@@ -509,11 +511,11 @@ private fun ServerLocationCard(
             }
 
             if (isSelected) {
-                Icon(
-                    imageVector = Icons.Rounded.CheckCircle,
-                    contentDescription = "Выбрано",
-                    tint = AccentCyan,
-                    modifier = Modifier.size(24.dp)
+                Text(
+                    text = "✓",
+                    color = AccentCyan,
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
