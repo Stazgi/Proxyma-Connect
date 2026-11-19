@@ -38,7 +38,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private const val PROXYMA_SUB_BASE_URL = "https://duckdns.org"
+private const val PROXYMA_SUB_BASE_URL = "https://proxymavpn.duckdns.org:2096/a8f3b2c9d1/"
 
 private val BgDarkTop = Color(0xFF0B0F19)
 private val BgDarkBottom = Color(0xFF131B2E)
@@ -82,6 +82,7 @@ fun MainScreen(
     var showKeyDialog by remember { mutableStateOf(false) }
 
     fun activateKey(rawUuid: String) {
+        fun activateKey(rawUuid: String) {
         val cleanKey = rawUuid.trim()
         if (cleanKey.isEmpty()) return
         val fullUrl = if (cleanKey.startsWith("http")) cleanKey else "$PROXYMA_SUB_BASE_URL$cleanKey"
@@ -94,9 +95,13 @@ fun MainScreen(
                 url = fullUrl
                 enabled = true
                 autoUpdate = true
+                allowInsecureUrl = true
             }
             MmkvManager.encodeSubscription("", subItem)
             val newSubId = MmkvManager.decodeSubscriptions().firstOrNull()?.guid.orEmpty()
+            if (newSubId.isNotEmpty()) {
+                com.v2ray.ang.handler.SubscriptionUpdater.syncOne(subId = newSubId)
+            }
             withContext(Dispatchers.Main) {
                 onAction(MainAction.RefreshGroups)
                 if (newSubId.isNotEmpty()) {
@@ -108,6 +113,7 @@ fun MainScreen(
             }
         }
     }
+
 
     if (showKeyDialog) {
         KeyInputDialog(
