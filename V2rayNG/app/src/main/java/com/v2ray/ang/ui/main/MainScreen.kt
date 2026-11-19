@@ -113,7 +113,6 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
                 connection.connectTimeout = 10000
                 connection.readTimeout = 10000
                 connection.setRequestProperty("User-Agent", "v2rayTun/3.0.0")
-                                connection.setRequestProperty("User-Agent", "v2rayTun/3.0.0")
                 connection.setRequestProperty("X-HWID", deviceHwid)
                 connection.setRequestProperty("X-Device-Model", deviceModel)
                 connection.setRequestProperty("X-Device-OS", "Android")
