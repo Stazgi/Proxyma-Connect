@@ -92,11 +92,10 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
 
     var showKeyDialog by remember { mutableStateOf(false) }
 
-        fun activateKey(rawUuid: String) {
+            fun activateKey(rawUuid: String) {
         val cleanKey = rawUuid.trim()
         if (cleanKey.isEmpty()) return
         MmkvManager.encodeSettings("proxyma_last_key", cleanKey)
-            
 
         scope.launch(Dispatchers.IO) {
             val trustAll = arrayOf<javax.net.ssl.TrustManager>(object : javax.net.ssl.X509TrustManager {
@@ -113,11 +112,11 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
                 connection.hostnameVerifier = javax.net.ssl.HostnameVerifier { _, _ -> true }
                 connection.connectTimeout = 10000
                 connection.readTimeout = 10000
-                connection.setRequestProperty("User-Agent", "Happ/2.0.0 (Android $osVersion; $deviceModel)")
-connection.setRequestProperty("X-HWID", deviceHwid)
-connection.setRequestProperty("X-Device-Model", deviceModel)
-connection.setRequestProperty("X-Device-OS", "Android")
-connection.setRequestProperty("X-Ver-OS", osVersion)
+                connection.setRequestProperty("User-Agent", "Happ/1.0.0")
+                connection.setRequestProperty("X-HWID", deviceHwid)
+                connection.setRequestProperty("X-Device-Model", deviceModel)
+                connection.setRequestProperty("X-Device-OS", "Android")
+                connection.setRequestProperty("X-Ver-OS", osVersion)
 
                 val rawBody = connection.inputStream.bufferedReader().use { it.readText() }.trim()
                 connection.disconnect()
@@ -144,15 +143,17 @@ connection.setRequestProperty("X-Ver-OS", osVersion)
                     onAction(MainAction.RemoveAllServers)
                     onAction(MainAction.ImportBatchConfig(decodedText))
                 }
-            } catch (_: Exception) {
+            } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    val fallbackUrl = if (cleanKey.startsWith("http")) cleanKey else "$PROXYMA_SUB_BASE_URL${cleanKey.take(16)}"
-                    onAction(MainAction.ImportBatchConfig(fallbackUrl))
+                    android.widget.Toast.makeText(
+                        context,
+                        "Ошибка сети: ${e.message}",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         }
     }
-        
     
     if (showKeyDialog) {
         KeyInputDialog(
