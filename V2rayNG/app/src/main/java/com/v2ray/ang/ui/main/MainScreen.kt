@@ -130,8 +130,9 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
                         String(android.util.Base64.decode(cleanBase64, android.util.Base64.DEFAULT), Charsets.UTF_8)
                     }
                 }
-                
-          try {
+            } 
+         
+            try {
                 val decodedText = if (cleanKey.startsWith("http")) {
                     fetchConfigs(cleanKey)
                 } else {
