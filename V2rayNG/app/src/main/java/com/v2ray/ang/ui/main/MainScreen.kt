@@ -85,33 +85,57 @@ fun MainScreen(
         fun activateKey(rawUuid: String) {
         val cleanKey = rawUuid.trim()
         if (cleanKey.isEmpty()) return
-        val fullUrl = if (cleanKey.startsWith("http")) cleanKey else "$PROXYMA_SUB_BASE_URL$cleanKey"
+
         scope.launch(Dispatchers.IO) {
-            try {
-                val connection = java.net.URL(fullUrl).openConnection() as java.net.HttpURLConnection
+            val trustAll = arrayOf<javax.net.ssl.TrustManager>(object : javax.net.ssl.X509TrustManager {
+                override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
+                override fun checkClientTrusted(certs: Array<java.security.cert.X509Certificate>, authType: String) {}
+                override fun checkServerTrusted(certs: Array<java.security.cert.X509Certificate>, authType: String) {}
+            })
+            val sc = javax.net.ssl.SSLContext.getInstance("TLS")
+            sc.init(null, trustAll, java.security.SecureRandom())
+
+            fun fetchConfigs(url: String): String {
+                val connection = java.net.URL(url).openConnection() as javax.net.ssl.HttpsURLConnection
+                connection.sslSocketFactory = sc.socketFactory
+                connection.hostnameVerifier = javax.net.ssl.HostnameVerifier { _, _ -> true }
                 connection.connectTimeout = 10000
                 connection.readTimeout = 10000
                 connection.setRequestProperty("User-Agent", "v2rayNG/1.9.0")
                 val rawBody = connection.inputStream.bufferedReader().use { it.readText() }.trim()
                 connection.disconnect()
-
-                val decodedText = if (rawBody.contains("://")) {
+                return if (rawBody.contains("://")) {
                     rawBody
                 } else {
                     String(android.util.Base64.decode(rawBody, android.util.Base64.DEFAULT), Charsets.UTF_8)
+                }
+            }
+
+            try {
+                val decodedText = if (cleanKey.startsWith("http")) {
+                    fetchConfigs(cleanKey)
+                } else {
+                    val subId = if (cleanKey.length > 16) cleanKey.take(16) else cleanKey
+                    try {
+                        fetchConfigs("$PROXYMA_SUB_BASE_URL$subId")
+                    } catch (_: Exception) {
+                        fetchConfigs("$PROXYMA_SUB_BASE_URL$cleanKey")
+                    }
                 }
 
                 withContext(Dispatchers.Main) {
                     onAction(MainAction.RemoveAllServers)
                     onAction(MainAction.ImportBatchConfig(decodedText))
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 withContext(Dispatchers.Main) {
-                    onAction(MainAction.ImportBatchConfig(fullUrl))
+                    val fallbackUrl = if (cleanKey.startsWith("http")) cleanKey else "$PROXYMA_SUB_BASE_URL${cleanKey.take(16)}"
+                    onAction(MainAction.ImportBatchConfig(fallbackUrl))
                 }
             }
         }
-        }
+    }
+        
     
     if (showKeyDialog) {
         KeyInputDialog(
