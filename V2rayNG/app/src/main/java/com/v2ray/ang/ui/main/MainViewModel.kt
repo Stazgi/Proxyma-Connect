@@ -85,30 +85,38 @@ class MainViewModel(
             doubleColumnDisplay = dataSource.getDoubleColumnDisplay()
         )
     )
-    val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
-
-    // ---------- Keyword filtering ----------
-    @Volatile
-    private var keywordFilter: String = ""
-    private var filterJob: Job? = null
-
-    // ---------- Groups & cache ----------
-    private val cacheMutex = Mutex()
-    private val groupDataCache = mutableMapOf<String, List<ServersCache>>()
-    private val groupUiFlows = ConcurrentHashMap<String, MutableStateFlow<ServerGroupUiState>>()
-    private val groupServerFlows = ConcurrentHashMap<String, StateFlow<List<ServersCache>>>()
-    private val groupLoadMutexes = ConcurrentHashMap<String, Mutex>()
-    private val serverOrderPersistenceJobs = mutableMapOf<String, Job>()
-
-    private var setupGroupJob: Job? = null
-    private var preloadJob: Job? = null
-    private var selectedGroupLoadJob: Job? = null
-    private var reloadJob: Job? = null
-    private var testResultFlushJob: Job? = null
-    private val pendingTestResults = linkedMapOf<String, Long>()
-
-    private val testRequests = MainTestRequests()
-    private var bulkTestJob: Job? = null
+        fun activateKey(rawUuid: String) {
+        val cleanKey = rawUuid.trim()
+        if (cleanKey.isEmpty()) return
+        val fullUrl = if (cleanKey.startsWith("http")) cleanKey else "$PROXYMA_SUB_BASE_URL$cleanKey"
+        scope.launch(Dispatchers.IO) {
+            MmkvManager.decodeSubscriptions().forEach { cache ->
+                SettingsManager.removeSubscriptionWithDefault(cache.guid)
+            }
+            val subItem = SubscriptionItem().apply {
+                remarks = "Proxyma VPN"
+                url = fullUrl
+                enabled = true
+                autoUpdate = true
+                allowInsecureUrl = true
+            }
+            MmkvManager.encodeSubscription("", subItem)
+            val newSubId = MmkvManager.decodeSubscriptions().firstOrNull()?.guid.orEmpty()
+            if (newSubId.isNotEmpty()) {
+                com.v2ray.ang.handler.SubscriptionUpdater.syncOne(subId = newSubId)
+            }
+            withContext(Dispatchers.Main) {
+                onAction(MainAction.RefreshGroups)
+                if (newSubId.isNotEmpty()) {
+                    onAction(MainAction.SelectGroup(newSubId))
+                    onAction(MainAction.UpdateGroupSubscription(newSubId))
+                } else {
+                    onAction(MainAction.UpdateSubscriptions)
+                }
+            }
+        }
+        }
+        
 
     private val initialPageReady = CompletableDeferred<Unit>()
 
