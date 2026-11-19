@@ -2,5 +2,5 @@
 <adaptive-icon xmlns:android="http://android.com">
     <background android:drawable="@drawable/ic_proxyma_bg" />
     <foreground android:drawable="@drawable/ic_proxyma_fg" />
-    <monochrome android:drawable="@drawable/ic_proxyma_fg" />
+    <monochrome android:drawable="@drawable/ic_proxyma_mono" />
 </adaptive-icon>
