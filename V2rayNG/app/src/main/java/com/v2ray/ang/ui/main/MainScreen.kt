@@ -80,6 +80,16 @@ fun MainScreen(
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+val deviceHwid = remember {
+    android.provider.Settings.Secure.getString(
+        context.contentResolver,
+        android.provider.Settings.Secure.ANDROID_ID
+    ) ?: "android-unknown"
+}
+val deviceModel = remember { "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}".trim() }
+val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
+
     var showKeyDialog by remember { mutableStateOf(false) }
 
         fun activateKey(rawUuid: String) {
@@ -103,7 +113,12 @@ fun MainScreen(
                 connection.hostnameVerifier = javax.net.ssl.HostnameVerifier { _, _ -> true }
                 connection.connectTimeout = 10000
                 connection.readTimeout = 10000
-                connection.setRequestProperty("User-Agent", "v2rayNG/1.9.0")
+                connection.setRequestProperty("User-Agent", "Happ/2.0.0 (Android $osVersion; $deviceModel)")
+connection.setRequestProperty("X-HWID", deviceHwid)
+connection.setRequestProperty("X-Device-Model", deviceModel)
+connection.setRequestProperty("X-Device-OS", "Android")
+connection.setRequestProperty("X-Ver-OS", osVersion)
+
                 val rawBody = connection.inputStream.bufferedReader().use { it.readText() }.trim()
                 connection.disconnect()
                 return if (rawBody.contains("://")) {
