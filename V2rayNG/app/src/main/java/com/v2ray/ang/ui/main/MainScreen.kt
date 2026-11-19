@@ -273,23 +273,30 @@ fun MainScreen(
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                    Row(
+                                        Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Доступные локации",
+                            text = "Доступные локации (${servers.size})",
                             color = TextPrimary,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold
                         )
-                        Text(
-                            text = "${servers.size} шт.",
-                            color = TextSecondary,
-                            fontSize = 13.sp
-                        )
+                        TextButton(
+                            onClick = { onAction(MainAction.TestRealAllServers) },
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp)
+                        ) {
+                            Text(
+                                text = "⚡ Проверить пинг",
+                                color = AccentCyan,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
                     }
+                                        
 
                     Spacer(modifier = Modifier.height(10.dp))
 
