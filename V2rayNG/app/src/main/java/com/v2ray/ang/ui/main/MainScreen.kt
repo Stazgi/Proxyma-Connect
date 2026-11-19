@@ -140,9 +140,10 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
                 }
 
                 withContext(Dispatchers.Main) {
-                    onAction(MainAction.RemoveAllServers)
                     onAction(MainAction.ImportBatchConfig(decodedText))
+                    onAction(MainAction.RefreshGroups)
                 }
+                            
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     android.widget.Toast.makeText(
