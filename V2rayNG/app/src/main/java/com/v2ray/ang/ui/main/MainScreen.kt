@@ -118,16 +118,20 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
                 connection.setRequestProperty("X-Device-OS", "Android")
                 connection.setRequestProperty("X-Ver-OS", osVersion)
 
-                val rawBody = connection.inputStream.bufferedReader().use { it.readText() }.trim()
+                                val rawBody = connection.inputStream.bufferedReader().use { it.readText() }.trim()
                 connection.disconnect()
                 return if (rawBody.contains("://")) {
                     rawBody
                 } else {
-                    String(android.util.Base64.decode(rawBody, android.util.Base64.DEFAULT), Charsets.UTF_8)
+                    val cleanBase64 = rawBody.replace("\\s".toRegex(), "")
+                    try {
+                        String(android.util.Base64.decode(cleanBase64, android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP), Charsets.UTF_8)
+                    } catch (_: Exception) {
+                        String(android.util.Base64.decode(cleanBase64, android.util.Base64.DEFAULT), Charsets.UTF_8)
+                    }
                 }
-            }
-
-            try {
+                
+          try {
                 val decodedText = if (cleanKey.startsWith("http")) {
                     fetchConfigs(cleanKey)
                 } else {
