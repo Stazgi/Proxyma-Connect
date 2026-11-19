@@ -15,7 +15,9 @@ jobs:
       - name: Download libv2ray.aar
         run: |
           mkdir -p V2rayNG/app/libs
-          curl -L -o V2rayNG/app/libs/libv2ray.aar https://github.com
+          AAR_URL=$(curl -s https://github.com | grep -oE '"browser_download_url": "[^"]+\.aar"' | head -n 1 | cut -d'"' -f4)
+          echo "Downloading from: $AAR_URL"
+          curl -fL -o V2rayNG/app/libs/libv2ray.aar "$AAR_URL"
       - name: Build APK
         working-directory: ./V2rayNG
         run: |
@@ -25,3 +27,4 @@ jobs:
         with:
           name: Proxyma-Connect-APK
           path: V2rayNG/app/build/outputs/apk/fdroid/debug/*.apk
+          
