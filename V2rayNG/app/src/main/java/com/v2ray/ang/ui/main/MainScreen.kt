@@ -82,40 +82,37 @@ fun MainScreen(
     val scope = rememberCoroutineScope()
     var showKeyDialog by remember { mutableStateOf(false) }
 
-    fun activateKey(rawUuid: String) {
+        fun activateKey(rawUuid: String) {
         val cleanKey = rawUuid.trim()
         if (cleanKey.isEmpty()) return
         val fullUrl = if (cleanKey.startsWith("http")) cleanKey else "$PROXYMA_SUB_BASE_URL$cleanKey"
         scope.launch(Dispatchers.IO) {
-            MmkvManager.decodeSubscriptions().forEach { cache ->
-                SettingsManager.removeSubscriptionWithDefault(cache.guid)
-            }
-                val subItem = SubscriptionItem().apply {
-                remarks = "Proxyma VPN"
-                url = fullUrl
-                enabled = true
-                autoUpdate = true
-                updateInterval = 1440
-                allowInsecureUrl = true
-            }
-                        
-            MmkvManager.encodeSubscription("", subItem)
-            val newSubId = MmkvManager.decodeSubscriptions().firstOrNull()?.guid.orEmpty()
-            if (newSubId.isNotEmpty()) {
-                SubscriptionUpdater.syncOne(subId = newSubId)
-            }
-            withContext(Dispatchers.Main) {
-                onAction(MainAction.RefreshGroups)
-                if (newSubId.isNotEmpty()) {
-                    onAction(MainAction.SelectGroup(newSubId))
-                    onAction(MainAction.UpdateGroupSubscription(newSubId))
+            try {
+                val connection = java.net.URL(fullUrl).openConnection() as java.net.HttpURLConnection
+                connection.connectTimeout = 10000
+                connection.readTimeout = 10000
+                connection.setRequestProperty("User-Agent", "v2rayNG/1.9.0")
+                val rawBody = connection.inputStream.bufferedReader().use { it.readText() }.trim()
+                connection.disconnect()
+
+                val decodedText = if (rawBody.contains("://")) {
+                    rawBody
                 } else {
-                    onAction(MainAction.UpdateSubscriptions)
+                    String(android.util.Base64.decode(rawBody, android.util.Base64.DEFAULT), Charsets.UTF_8)
+                }
+
+                withContext(Dispatchers.Main) {
+                    onAction(MainAction.RemoveAllServers)
+                    onAction(MainAction.ImportBatchConfig(decodedText))
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    onAction(MainAction.ImportBatchConfig(fullUrl))
                 }
             }
         }
-    }
-
+        }
+    
     if (showKeyDialog) {
         KeyInputDialog(
             isLoading = isLoading,
