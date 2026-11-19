@@ -110,15 +110,15 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
                 val connection = java.net.URL(url).openConnection() as javax.net.ssl.HttpsURLConnection
                 connection.sslSocketFactory = sc.socketFactory
                 connection.hostnameVerifier = javax.net.ssl.HostnameVerifier { _, _ -> true }
-                connection.connectTimeout = 10000
-                connection.readTimeout = 10000
-                connection.setRequestProperty("User-Agent", "v2rayTun/3.0.0")
+                connection.connectTimeout = 1000
+                connection.readTimeout = 1000
+                                connection.setRequestProperty("User-Agent", "v2rayNG/1.9.0")
+                connection.setRequestProperty("Accept-Encoding", "identity")
                 connection.setRequestProperty("X-HWID", deviceHwid)
                 connection.setRequestProperty("X-Device-Model", deviceModel)
                 connection.setRequestProperty("X-Device-OS", "Android")
                 connection.setRequestProperty("X-Ver-OS", osVersion)
-
-                val stream = if ("gzip".equals(connection.contentEncoding, ignoreCase = true)) {
+                
                     java.util.zip.GZIPInputStream(connection.inputStream)
                 } else {
                     connection.inputStream
