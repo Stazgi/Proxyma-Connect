@@ -31,7 +31,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.v2ray.ang.R
+import com.v2ray.ang.dto.entities.SubscriptionItem
+import com.v2ray.ang.handler.MmkvManager
+import com.v2ray.ang.handler.SettingsManager
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 private const val PROXYMA_SUB_BASE_URL = "https://duckdns.org"
 
@@ -45,6 +50,221 @@ private val AccentIndigo = Color(0xFF6366F1)
 private val ConnectedGreen = Color(0xFF10B981)
 private val TextPrimary = Color(0xFFF8FAFC)
 private val TextSecondary = Color(0xFF94A3B8)
+
+@Composable
+fun MainScreen(
+    mainViewModel: MainViewModel,
+    onAction: (MainAction) -> Unit,
+    onNavigate: (MainDestination) -> Unit,
+) {
+    val uiState by mainViewModel.uiState.collectAsStateWithLifecycle()
+    val isLoading by mainViewModel.isLoading.collectAsStateWithLifecycle()
+    val groups = uiState.groups
+    val activeGroup = groups.firstOrNull { it.id == uiState.selectedGroupId } ?: groups.firstOrNull()
+    val serversState = if (activeGroup != null) {
+        mainViewModel.serversForGroup(activeGroup.id).collectAsStateWithLifecycle()
+    } else {
+        remember { mutableStateOf(emptyList()) }
+    }
+    val servers = serversState.value
+
+    val isRunning = uiState.isRunning
+    val selectedGuid = uiState.selectedGuid
+    val statusText = mainViewModel.formatStatus(uiState.status)
+
+    LaunchedEffect(servers, selectedGuid) {
+        if (servers.isNotEmpty() && (selectedGuid.isNullOrEmpty() || servers.none { it.guid == selectedGuid })) {
+            onAction(MainAction.SelectServer(servers.first().guid))
+        }
+    }
+
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+    var showKeyDialog by remember { mutableStateOf(false) }
+
+    fun activateKey(rawUuid: String) {
+        val cleanKey = rawUuid.trim()
+        if (cleanKey.isEmpty()) return
+        val fullUrl = if (cleanKey.startsWith("http")) cleanKey else "$PROXYMA_SUB_BASE_URL$cleanKey"
+        scope.launch(Dispatchers.IO) {
+            MmkvManager.decodeSubscriptions().forEach { cache ->
+                SettingsManager.removeSubscriptionWithDefault(cache.guid)
+            }
+            val subItem = SubscriptionItem().apply {
+                remarks = "Proxyma VPN"
+                url = fullUrl
+                enabled = true
+                autoUpdate = true
+            }
+            MmkvManager.encodeSubscription("", subItem)
+            val newSubId = MmkvManager.decodeSubscriptions().firstOrNull()?.guid.orEmpty()
+            withContext(Dispatchers.Main) {
+                onAction(MainAction.RefreshGroups)
+                if (newSubId.isNotEmpty()) {
+                    onAction(MainAction.SelectGroup(newSubId))
+                    onAction(MainAction.UpdateGroupSubscription(newSubId))
+                } else {
+                    onAction(MainAction.UpdateSubscriptions)
+                }
+            }
+        }
+    }
+
+    if (showKeyDialog) {
+        KeyInputDialog(
+            isLoading = isLoading,
+            onDismiss = { showKeyDialog = false },
+            onActivate = { uuid ->
+                activateKey(uuid)
+                showKeyDialog = false
+            }
+        )
+    }
+        ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            MainDrawerContent(
+                drawerState = drawerState,
+                onNavigate = { route ->
+                    scope.launch { drawerState.close() }
+                    onNavigate(route)
+                }
+            )
+        }
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.verticalGradient(listOf(BgDarkTop, BgDarkBottom)))
+                .systemBarsPadding()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            modifier = Modifier
+                                .size(38.dp)
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Brush.linearGradient(listOf(AccentCyan, AccentIndigo))),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "P",
+                                color = Color.White,
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.ExtraBold
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "Proxyma Connect",
+                                color = TextPrimary,
+                                fontSize = 19.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Защищённый туннель",
+                                color = AccentCyan,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+
+                    Row {
+                        IconButton(onClick = { showKeyDialog = true }) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_add_24dp),
+                                contentDescription = "Ключ доступа",
+                                tint = TextPrimary
+                            )
+                        }
+                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_menu_24dp),
+                                contentDescription = "Меню",
+                                tint = TextSecondary
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (servers.isEmpty() && !isLoading) {
+                    EmptyActivationCard(
+                        onActivate = { uuid -> activateKey(uuid) }
+                    )
+                } else {
+                    SubscriptionStatusCard(
+                        groupRemarks = activeGroup?.remarks,
+                        isLoading = isLoading,
+                        onRefresh = { onAction(MainAction.UpdateSubscriptions) }
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    PowerConnectButton(
+                        isRunning = isRunning,
+                        isLoading = isLoading,
+                        statusText = statusText,
+                        onToggle = { onAction(MainAction.ToggleService) },
+                        onTestPing = { onAction(MainAction.TestCurrentServer) }
+                    )
+
+                    Spacer(modifier = Modifier.height(24.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Доступные локации",
+                            color = TextPrimary,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = "${servers.size} шт.",
+                            color = TextSecondary,
+                            fontSize = 13.sp
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    LazyColumn(
+                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        items(servers, key = { it.guid }) { server ->
+                            val isSelected = server.guid == selectedGuid
+                            ServerLocationCard(
+                                name = server.profile.remarks.ifBlank { "Сервер Proxyma" },
+                                protocol = server.profile.configType.name,
+                                delayMillis = server.testDelayMillis,
+                                isSelected = isSelected,
+                                onClick = { onAction(MainAction.SelectServer(server.guid)) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 @Composable
 fun MainScreen(
