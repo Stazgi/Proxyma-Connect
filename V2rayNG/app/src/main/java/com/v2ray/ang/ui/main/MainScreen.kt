@@ -90,13 +90,15 @@ fun MainScreen(
             MmkvManager.decodeSubscriptions().forEach { cache ->
                 SettingsManager.removeSubscriptionWithDefault(cache.guid)
             }
-            val subItem = SubscriptionItem().apply {
+                val subItem = SubscriptionItem().apply {
                 remarks = "Proxyma VPN"
                 url = fullUrl
                 enabled = true
                 autoUpdate = true
+                updateInterval = 1440
                 allowInsecureUrl = true
             }
+                        
             MmkvManager.encodeSubscription("", subItem)
             val newSubId = MmkvManager.decodeSubscriptions().firstOrNull()?.guid.orEmpty()
             if (newSubId.isNotEmpty()) {
