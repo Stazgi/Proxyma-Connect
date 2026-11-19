@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://android.com"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Буква P для монохромного стиля Nothing OS -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M43,35 H58 C65,35 70,39.5 70,46 C70,52.5 65,57 58,57 H50 V73 H43 Z M50,41.5 V50.5 H57.5 C60.8,50.5 62.8,48.8 62.8,46 C62.8,43.2 60.8,41.5 57.5,41.5 Z" />
+</vector>
