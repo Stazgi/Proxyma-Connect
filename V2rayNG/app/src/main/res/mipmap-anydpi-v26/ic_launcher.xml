@@ -1,6 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://android.com">
-    <background android:drawable="@drawable/ic_proxyma_bg" />
-    <foreground android:drawable="@drawable/ic_proxyma_fg" />
-    <monochrome android:drawable="@drawable/ic_proxyma_mono" />
+    <background>
+        <shape android:shape="rectangle">
+            <solid android:color="#FF0F172A" />
+        </shape>
+    </background>
+    <foreground>
+        <vector
+            android:width="108dp"
+            android:height="108dp"
+            android:viewportWidth="108"
+            android:viewportHeight="108">
+            <path
+                android:fillColor="#FF00E5FF"
+                android:pathData="M54,23 L78,33 L78,52 C78,68 67.5,81.5 54,86 C40.5,81.5 30,68 30,52 L30,33 Z" />
+            <path
+                android:fillColor="#FF0F172A"
+                android:pathData="M54,28 L73,36 L73,52 C73,65 64.5,76.5 54,80.5 C43.5,76.5 35,65 35,52 L35,36 Z" />
+            <path
+                android:fillColor="#FFFFFFFF"
+                android:pathData="M45,39 H56.5 C61.5,39 65,42.2 65,47 C65,51.8 61.5,55 56.5,55 H50.5 V67 H45 Z M50.5,44 V50 H56 C58.2,50 59.5,48.8 59.5,47 C59.5,45.2 58.2,44 56,44 Z" />
+        </vector>
+    </foreground>
+    <monochrome>
+        <vector
+            android:width="108dp"
+            android:height="108dp"
+            android:viewportWidth="108"
+            android:viewportHeight="108">
+            <path
+                android:fillColor="#FF000000"
+                android:pathData="M43,35 H58 C65,35 70,39.5 70,46 C70,52.5 65,57 58,57 H50 V73 H43 Z M50,41.5 V50.5 H57.5 C60.8,50.5 62.8,48.8 62.8,46 C62.8,43.2 60.8,41.5 57.5,41.5 Z" />
+        </vector>
+    </monochrome>
 </adaptive-icon>
