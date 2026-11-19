@@ -349,10 +349,8 @@ object MmkvManager {
             val serverList = if (append) {
     decodeServerList(subscriptionId)
 } else {
-    ProfileReplacement.findKeptGroups(
-        replacedProfiles = replacedServers.associateWith(::decodeServerConfig),
-        profiles = profiles.values,
-    ).toMutableList()
+    // Убираем дубликаты: очищаем старый список при обновлении подписки
+    mutableListOf()
             }
             val indexedServers = serverList.toHashSet()
             profiles.keys.forEach { guid ->
