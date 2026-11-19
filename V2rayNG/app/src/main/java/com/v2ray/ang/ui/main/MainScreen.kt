@@ -39,7 +39,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private const val PROXYMA_SUB_BASE_URL = "https://duckdns.org"
+private const val PROXYMA_SUB_BASE_URL = "https://proxymavpn.duckdns.org:2096/a8f3b2c9d1/"
 
 private val BgDarkTop = Color(0xFF0B0F19)
 private val BgDarkBottom = Color(0xFF131B2E)
