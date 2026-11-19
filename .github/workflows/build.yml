@@ -57,7 +57,15 @@ jobs:
       with:
         distribution: 'temurin'
         java-version: '21'
-            - name: Upload Proxyma Connect APK (arm64-v8a)
+
+    - name: Build APK
+      run: |
+        cd ${{ github.workspace }}/V2rayNG
+        echo "sdk.dir=${ANDROID_HOME}" > local.properties
+        chmod 755 gradlew
+        ./gradlew assembleFdroidDebug
+
+    - name: Upload Proxyma Connect APK (arm64-v8a)
       uses: actions/upload-artifact@v7
       if: ${{ success() }}
       with:
@@ -70,3 +78,4 @@ jobs:
       with:
         name: Proxyma-Connect-armeabi-v7a-32bit
         path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/fdroid/debug/*armeabi-v7a*.apk
+        
