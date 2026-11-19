@@ -85,6 +85,8 @@ fun MainScreen(
         fun activateKey(rawUuid: String) {
         val cleanKey = rawUuid.trim()
         if (cleanKey.isEmpty()) return
+        MmkvManager.encodeSettings("proxyma_last_key", cleanKey)
+            
 
         scope.launch(Dispatchers.IO) {
             val trustAll = arrayOf<javax.net.ssl.TrustManager>(object : javax.net.ssl.X509TrustManager {
@@ -236,11 +238,19 @@ fun MainScreen(
                         SubscriptionStatusCard(
                         groupRemarks = activeGroup?.remarks,
                         isLoading = isLoading,
-                        onRefresh = { onAction(MainAction.UpdateSubscriptions) },
-                        onDeleteSub = {
+                        onRefresh = {
+    val savedKey = MmkvManager.decodeSettingsString("proxyma_last_key").orEmpty()
+    if (savedKey.isNotEmpty()) {
+        activateKey(savedKey)
+    } else {
+        showKeyDialog = true
+    }
+},
+                            onDeleteSub = {
+                            MmkvManager.encodeSettings("proxyma_last_key", "")
                             scope.launch(Dispatchers.IO) {
                                 MmkvManager.decodeSubscriptions().forEach { cache ->
-                                    SettingsManager.removeSubscriptionWithDefault(cache.guid)
+                                SettingsManager.removeSubscriptionWithDefault(cache.guid)
                                 }
                                 withContext(Dispatchers.Main) {
                                     onAction(MainAction.RemoveAllServers)
