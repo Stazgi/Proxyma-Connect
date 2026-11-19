@@ -144,10 +144,24 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
                     }
                 }
 
+                                val cleanConfigs = decodedText.lines()
+                    .map { it.trim() }
+                    .filter { it.startsWith("vless://") || it.startsWith("vmess://") || it.startsWith("trojan://") || it.startsWith("ss://") }
+                    .joinToString("\n")
+
                 withContext(Dispatchers.Main) {
-                    onAction(MainAction.ImportBatchConfig(decodedText))
-                    onAction(MainAction.RefreshGroups)
+                    if (cleanConfigs.isNotEmpty()) {
+                        onAction(MainAction.ImportBatchConfig(cleanConfigs))
+                        onAction(MainAction.RefreshGroups)
+                    } else {
+                        android.widget.Toast.makeText(
+                            context,
+                            "Пустой ответ: ${decodedText.take(60)}",
+                            android.widget.Toast.LENGTH_LONG
+                        ).show()
+                    }
                 }
+                
                             
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
