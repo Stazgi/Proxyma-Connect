@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://android.com"
-    android:width="108dp"
-    android:height="108dp"
-    android:viewportWidth="108"
-    android:viewportHeight="108">
-    <!-- Буква P для монохромного стиля Nothing OS -->
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
     <path
-        android:fillColor="#FF000000"
-        android:pathData="M43,35 H58 C65,35 70,39.5 70,46 C70,52.5 65,57 58,57 H50 V73 H43 Z M50,41.5 V50.5 H57.5 C60.8,50.5 62.8,48.8 62.8,46 C62.8,43.2 60.8,41.5 57.5,41.5 Z" />
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M12,2L4,5.5v6.09c0,5.05 3.41,9.76 8,10.91c4.59,-1.15 8,-5.86 8,-10.91V5.5L12,2zM9,7h4c1.66,0 3,1.34 3,3s-1.34,3 -3,3h-2v4H9V7zM11,9v2h2c0.55,0 1,-0.45 1,-1s-0.45,-1 -1,-1H11z" />
 </vector>
