@@ -4,8 +4,8 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Белый робот -->
+    <!-- Буква P, крупная, по центру -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,12C40.77,12 30,22.77 30,36V42H24V54H36V42H30V36C30,25.51 38.51,17 49,17C50.5,17 51.94,17.22 53.31,17.59C54.69,17.22 56.13,17 57.62,17C68.09,17 76,25.51 76,36V42H64V54H76V42H70V36C70,22.77 59.23,12 46,12ZM24,66H36V78H24ZM72,66H84V78H72ZM36,66H48V78H36ZM60,66H72V78H60ZM48,66H60V78H48Z" />
+        android:fillColor="#3B82F6"
+        android:pathData="M34,18h40v68h-40z M42,26h24v16h-24z M42,46h24v32h-24z" />
 </vector>
