@@ -4,13 +4,16 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Буква P: центрирована, с отступами, чтобы не обрезалась -->
-    <!-- Основной ствол: x=36..72, y=20..84 -->
+    
+    <!-- Синий блок (основа буквы P) -->
+    <!-- x=30, y=22, ширина 36, высота 64. Есть отступы со всех сторон! -->
     <path
         android:fillColor="#3B82F6"
-        android:pathData="M36,20h36v64h-36z" />
-    <!-- Петля: x=44..68, y=28..56 -->
+        android:pathData="M30,22h36v64h-36z" />
+        
+    <!-- Белая точка (завершает образ P или служит акцентом) -->
+    <!-- Центр точки: x=66, y=54. Радиус 12. -->
     <path
-        android:fillColor="#3B82F6"
-        android:pathData="M44,28h24v28h-24z" />
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,42a12,12 0 1,1 24,0a12,12 0 1,1 -24,0z" />
 </vector>
