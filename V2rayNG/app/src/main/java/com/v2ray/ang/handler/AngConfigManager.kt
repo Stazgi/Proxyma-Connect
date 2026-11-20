@@ -304,16 +304,22 @@ private fun commitProfiles(
 ) {
     val keyToProfile = linkedMapOf<String, ProfileItem>()
     val rawConfigs = mutableMapOf<String, String>()
-    
-    // Хранилище уникальных отпечатков серверов
     val uniqueIdentities = HashSet<String>()
+
+    // Если режим добавления — сначала запоминаем все уже существующие серверы
+    if (append) {
+        MmkvManager.decodeServerList(subid).forEach { existingGuid ->
+            MmkvManager.decodeServerConfig(existingGuid)?.let { p ->
+                val identity = "${p.server}:${p.serverPort}:${p.password}:${p.configType}:${p.network}:${p.security}:${p.sni}:${p.publicKey}"
+                uniqueIdentities.add(identity)
+            }
+        }
+    }
 
     configs.forEach { parsed ->
         val p = parsed.profile
-        // Собираем ВСЕ ключевые параметры в одну строку
         val identity = "${p.server}:${p.serverPort}:${p.password}:${p.configType}:${p.network}:${p.security}:${p.sni}:${p.publicKey}"
-        
-        // Если такого сервера еще нет — добавляем
+
         if (!uniqueIdentities.contains(identity)) {
             uniqueIdentities.add(identity)
             val key = Utils.getUuid()
@@ -322,12 +328,14 @@ private fun commitProfiles(
         }
     }
 
+    if (keyToProfile.isNotEmpty() || !append) {
         MmkvManager.saveServerProfiles(
-        profiles = keyToProfile,
-        rawConfigs = rawConfigs,
-        subscriptionId = subid,
-        append = append,
-    )
+            profiles = keyToProfile,
+            rawConfigs = rawConfigs,
+            subscriptionId = subid,
+            append = append,
+        )
+    }
 }
 
     /**
