@@ -92,7 +92,7 @@ object NotificationManager {
             }
 
         mBuilder = NotificationCompat.Builder(service, channelId)
-            .setSmallIcon(R.drawable.ic_stat_name)
+            .setSmallIcon(R.drawable.ic_proxyma_mono)
             .setContentTitle(currentConfig?.remarks ?: service.getString(R.string.app_name))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
@@ -177,21 +177,15 @@ object NotificationManager {
      * @param proxyTraffic The proxy traffic.
      * @param directTraffic The direct traffic.
      */
-    private fun updateNotification(contentText: String?, proxyTraffic: Long, directTraffic: Long) {
+        private fun updateNotification(contentText: String?, proxyTraffic: Long, directTraffic: Long) {
         if (mBuilder != null) {
-            if (proxyTraffic < NOTIFICATION_ICON_THRESHOLD && directTraffic < NOTIFICATION_ICON_THRESHOLD) {
-                mBuilder?.setSmallIcon(R.drawable.ic_stat_name)
-            } else if (proxyTraffic > directTraffic) {
-                mBuilder?.setSmallIcon(R.drawable.ic_stat_proxy)
-            } else {
-                mBuilder?.setSmallIcon(R.drawable.ic_stat_direct)
-            }
+            mBuilder?.setSmallIcon(R.drawable.ic_proxyma_mono)
             mBuilder?.setStyle(NotificationCompat.BigTextStyle().bigText(contentText))
             mBuilder?.setContentText(contentText)
             getNotificationManager()?.notify(NOTIFICATION_ID, mBuilder?.build())
         }
     }
-
+        
     /**
      * Gets the notification manager.
      * @return The notification manager.
