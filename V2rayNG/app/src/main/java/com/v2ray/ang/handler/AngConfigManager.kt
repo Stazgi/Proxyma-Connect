@@ -297,47 +297,67 @@ object AngConfigManager {
      * @param subid The subscription ID.
      * @param append Whether to append to the existing server list.
      */
-private fun commitProfiles(
-    configs: List<ParsedProfile>,
-    subid: String,
-    append: Boolean,
-) {
-    val keyToProfile = linkedMapOf<String, ProfileItem>()
-    val rawConfigs = mutableMapOf<String, String>()
-    val uniqueIdentities = HashSet<String>()
+    private fun commitProfiles(
+        configs: List<ParsedProfile>,
+        subid: String,
+        append: Boolean,
+    ) {
+        val keyToProfile = linkedMapOf<String, ProfileItem>()
+        val rawConfigs = mutableMapOf<String, String>()
+        val uniqueIdentities = HashSet<String>()
 
-    // Если режим добавления — сначала запоминаем все уже существующие серверы
-    if (append) {
-        MmkvManager.decodeServerList(subid).forEach { existingGuid ->
-            MmkvManager.decodeServerConfig(existingGuid)?.let { p ->
-                val identity = "${p.server}:${p.serverPort}:${p.password}:${p.configType}:${p.network}:${p.security}:${p.sni}:${p.publicKey}"
-                uniqueIdentities.add(identity)
+        // Функция для создания единого отпечатка сервера
+        fun buildIdentity(p: ProfileItem): String {
+            return listOf(
+                p.server?.trim(),
+                p.serverPort?.trim(),
+                p.password?.trim(),
+                p.configType.name,
+                p.network?.trim(),
+                p.security?.trim(),
+                p.sni?.trim(),
+                p.publicKey?.trim()
+            ).joinToString(":")
+        }
+
+        // Если режим добавления — собираем отпечатки ВСЕХ уже существующих серверов (и из подписок, и из общего списка)
+        if (append) {
+            val allGuids = LinkedHashSet<String>()
+            allGuids.addAll(MmkvManager.decodeServerList(""))
+            allGuids.addAll(MmkvManager.decodeServerList(subid))
+            MmkvManager.decodeSubscriptions().forEach { sub ->
+                allGuids.addAll(MmkvManager.decodeServerList(sub.guid))
+            }
+
+            allGuids.forEach { existingGuid ->
+                MmkvManager.decodeServerConfig(existingGuid)?.let { p ->
+                    uniqueIdentities.add(buildIdentity(p))
+                }
             }
         }
-    }
 
-    configs.forEach { parsed ->
-        val p = parsed.profile
-        val identity = "${p.server}:${p.serverPort}:${p.password}:${p.configType}:${p.network}:${p.security}:${p.sni}:${p.publicKey}"
+        configs.forEach { parsed ->
+            val p = parsed.profile
+            val identity = buildIdentity(p)
 
-        if (!uniqueIdentities.contains(identity)) {
-            uniqueIdentities.add(identity)
-            val key = Utils.getUuid()
-            keyToProfile[key] = p
-            parsed.rawConfig?.let { raw -> rawConfigs[key] = raw }
+            if (!uniqueIdentities.contains(identity)) {
+                uniqueIdentities.add(identity)
+                val key = Utils.getUuid()
+                keyToProfile[key] = p
+                parsed.rawConfig?.let { raw -> rawConfigs[key] = raw }
+            }
+        }
+
+        if (keyToProfile.isNotEmpty() || !append) {
+            MmkvManager.saveServerProfiles(
+                profiles = keyToProfile,
+                rawConfigs = rawConfigs,
+                subscriptionId = subid,
+                append = append,
+            )
         }
     }
-
-    if (keyToProfile.isNotEmpty() || !append) {
-        MmkvManager.saveServerProfiles(
-            profiles = keyToProfile,
-            rawConfigs = rawConfigs,
-            subscriptionId = subid,
-            append = append,
-        )
-    }
-}
-
+    
     /**
      * Parses a custom configuration server.
      *
