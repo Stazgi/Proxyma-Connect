@@ -322,15 +322,7 @@ private fun commitProfiles(
         }
     }
 
-    MmkvManager.saveServerProfiles(
-        profiles = keyToProfile,
-        rawConfigs = rawConfigs,
-        subscriptionId = subid,
-        append = append,
-    )
-}
-
-    MmkvManager.saveServerProfiles(
+        MmkvManager.saveServerProfiles(
         profiles = keyToProfile,
         rawConfigs = rawConfigs,
         subscriptionId = subid,
