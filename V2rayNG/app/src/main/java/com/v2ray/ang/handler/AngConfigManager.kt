@@ -245,7 +245,7 @@ object AngConfigManager {
      * @param append Whether to append the configurations.
      * @return The number of configurations parsed.
      */
-    private fun parseBatchConfig(servers: String?, subid: String, append: Boolean): Int {
+        private fun parseBatchConfig(servers: String?, subid: String, append: Boolean): Int {
         try {
             if (servers == null) {
                 return 0
@@ -274,14 +274,14 @@ object AngConfigManager {
             val allConfigs = v2raynConfigs + configs
 
             if (allConfigs.isNotEmpty()) {
-                commitProfiles(
+                return commitProfiles(
                     configs = allConfigs.map(::ParsedProfile),
                     subid = subid,
                     append = append,
                 )
             }
 
-            return allConfigs.size
+            return 0
         } catch (e: ProfileStorageException) {
             throw e
         } catch (e: Exception) {
@@ -296,17 +296,17 @@ object AngConfigManager {
      * @param configs The parsed profiles to save.
      * @param subid The subscription ID.
      * @param append Whether to append to the existing server list.
+     * @return Number of actually saved profiles.
      */
     private fun commitProfiles(
         configs: List<ParsedProfile>,
         subid: String,
         append: Boolean,
-    ) {
+    ): Int {
         val keyToProfile = linkedMapOf<String, ProfileItem>()
         val rawConfigs = mutableMapOf<String, String>()
         val uniqueIdentities = HashSet<String>()
 
-        // Функция для создания единого отпечатка сервера
         fun buildIdentity(p: ProfileItem): String {
             return listOf(
                 p.server?.trim(),
@@ -320,7 +320,7 @@ object AngConfigManager {
             ).joinToString(":")
         }
 
-        // Если режим добавления — собираем отпечатки ВСЕХ уже существующих серверов (и из подписок, и из общего списка)
+        // Если режим добавления (append = true), запоминаем отпечатки ВСЕХ уже существующих серверов
         if (append) {
             val allGuids = LinkedHashSet<String>()
             allGuids.addAll(MmkvManager.decodeServerList(""))
@@ -356,103 +356,10 @@ object AngConfigManager {
                 append = append,
             )
         }
+
+        return keyToProfile.size
     }
     
-    /**
-     * Parses a custom configuration server.
-     *
-     * @param server The server string.
-     * @param subid The subscription ID.
-     * @param append Whether to append the configurations.
-     * @return The number of configurations parsed.
-     */
-    private fun parseCustomConfigServer(server: String?, subid: String, append: Boolean): Int {
-        if (server == null) {
-            return 0
-        }
-        if (server.contains("inbounds")
-            && server.contains("outbounds")
-            && server.contains("routing")
-        ) {
-            try {
-                val serverList: Array<Any> =
-                    JsonUtil.fromJson(server, Array<Any>::class.java) ?: arrayOf()
-
-                if (serverList.isNotEmpty()) {
-                    val configs = serverList.reversed().map { srv ->
-                        val config = CustomFmt.parse(JsonUtil.toJson(srv))
-                        config.subscriptionId = subid
-                        config.description = generateDescription(config)
-                        ParsedProfile(
-                            profile = config,
-                            rawConfig = JsonUtil.toJsonPretty(srv) ?: "",
-                        )
-                    }
-                    commitProfiles(configs, subid, append)
-                    return configs.size
-                }
-            } catch (e: ProfileStorageException) {
-                throw e
-            } catch (e: Exception) {
-                LogUtil.e(AppConfig.TAG, "Failed to parse custom config server JSON array", e)
-            }
-
-            try {
-                // For compatibility
-                val config = CustomFmt.parse(server)
-                config.subscriptionId = subid
-                config.description = generateDescription(config)
-                commitProfiles(
-                    configs = listOf(ParsedProfile(config, server)),
-                    subid = subid,
-                    append = append,
-                )
-                return 1
-            } catch (e: ProfileStorageException) {
-                throw e
-            } catch (e: Exception) {
-                LogUtil.e(AppConfig.TAG, "Failed to parse custom config server as single config", e)
-            }
-            return 0
-        } else if (!server.contains("outbounds") && server.contains("protocol")) {
-            try {
-                val (config, rawOutbound) = CustomOutboundFmt.parse(server)
-                config.subscriptionId = subid
-                config.description = generateDescription(config)
-                commitProfiles(
-                    configs = listOf(ParsedProfile(config, rawOutbound)),
-                    subid = subid,
-                    append = append,
-                )
-                return 1
-            } catch (e: ProfileStorageException) {
-                throw e
-            } catch (e: Exception) {
-                LogUtil.e(AppConfig.TAG, "Failed to parse custom outbound", e)
-            }
-            return 0
-        } else if (server.startsWith("[Interface]") && server.contains("[Peer]")) {
-            try {
-                val config = WireguardFmt.parseWireguardConfFile(server)
-                config.subscriptionId = subid
-                config.description = generateDescription(config)
-                commitProfiles(
-                    configs = listOf(ParsedProfile(config, server)),
-                    subid = subid,
-                    append = append,
-                )
-                return 1
-            } catch (e: ProfileStorageException) {
-                throw e
-            } catch (e: Exception) {
-                LogUtil.e(AppConfig.TAG, "Failed to parse WireGuard config file", e)
-            }
-            return 0
-        } else {
-            return 0
-        }
-    }
-
     /**
      * Parses the configuration from a QR code or string.
      * Only parses and returns ProfileItem, does not save.
