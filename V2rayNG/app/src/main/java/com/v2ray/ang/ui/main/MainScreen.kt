@@ -30,6 +30,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.v2ray.ang.handler.AngConfigManager
+import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.entities.SubscriptionItem
 import com.v2ray.ang.handler.MmkvManager
@@ -149,16 +151,27 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
                     }
                 }
 
-                                val cleanConfigs = decodedText.lines()
+                 val cleanConfigs = decodedText.lines()
                     .map { it.trim() }
                     .filter { it.startsWith("vless://") || it.startsWith("vmess://") || it.startsWith("trojan://") || it.startsWith("ss://") }
                     .joinToString("\n")
 
-                withContext(Dispatchers.Main) {
-                    if (cleanConfigs.isNotEmpty()) {
-                        onAction(MainAction.ImportBatchConfig(cleanConfigs))
+                if (cleanConfigs.isNotEmpty()) {
+                    val (count, _) = AngConfigManager.importBatchConfig(
+                        server = cleanConfigs,
+                        subid = uiState.selectedGroupId,
+                        append = false
+                    )
+                    withContext(Dispatchers.Main) {
                         onAction(MainAction.RefreshGroups)
-                    } else {
+                        android.widget.Toast.makeText(
+                            context,
+                            "Обновлено локаций: $count",
+                            android.widget.Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
                         android.widget.Toast.makeText(
                             context,
                             "Пустой ответ: ${decodedText.take(60)}",
