@@ -4,8 +4,13 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <!-- Буква P, крупная, по центру -->
+    <!-- Буква P: центрирована, с отступами, чтобы не обрезалась -->
+    <!-- Основной ствол: x=36..72, y=20..84 -->
     <path
         android:fillColor="#3B82F6"
-        android:pathData="M34,18h40v68h-40z M42,26h24v16h-24z M42,46h24v32h-24z" />
+        android:pathData="M36,20h36v64h-36z" />
+    <!-- Петля: x=44..68, y=28..56 -->
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M44,28h24v28h-24z" />
 </vector>
