@@ -1,0 +1,20 @@
+name: Generate Keystore
+on:
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate JKS and Base64
+        run: |
+          keytool -genkey -v -keystore release.jks -keyalg RSA -keysize 2048 -validity 10000 -alias proxymaconnect -storepass Vsowb72vJQpBc104 -keypass Vsowb72vJQpBc104 -dname "CN=Proxyma Connect, O=Proxyma, C=RU"
+          echo "=== BASE64 START ==="
+          base64 -w 0 release.jks
+          echo ""
+          echo "=== BASE64 END ==="
+      - name: Upload JKS
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-keystore
+          path: release.jks
