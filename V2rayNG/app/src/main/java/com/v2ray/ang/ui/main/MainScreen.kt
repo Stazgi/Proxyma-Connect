@@ -614,7 +614,7 @@ private fun PowerConnectButton(
                         CircularProgressIndicator(color = Color.White, modifier = Modifier.size(42.dp))
                     } else {
                         Text(
-                            text = if (isRunning) "ON" else "OFF",
+                            text = if (isRunning) "🛡️" else "Выкл",
                             color = Color.White,
                             fontSize = 26.sp,
                             fontWeight = FontWeight.ExtraBold,
