@@ -45,7 +45,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private const val PROXYMA_SUB_BASE_URL = "https://proxymavpn.duckdns.org:2096/a8f3b2c9d/"
+private const val PROXYMA_SUB_BASE_URL = "https://proxymavpn.duckdns.org:2096/a8f3b2c9d1/"
 
 private val BgDarkTop = Color(0xFF0B0F19)
 private val BgDarkBottom = Color(0xFF131B2E)
@@ -612,9 +612,16 @@ private fun PowerConnectButton(
                 Box(contentAlignment = Alignment.Center) {
                     if (isLoading) {
                         CircularProgressIndicator(color = Color.White, modifier = Modifier.size(42.dp))
+                    } else if (isRunning) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_proxyma_mono),
+                            contentDescription = "Защита включена",
+                            tint = Color.White,
+                            modifier = Modifier.size(54.dp)
+                        )
                     } else {
                         Text(
-                            text = if (isRunning) "🛡️" else "Выкл",
+                            text = "Выкл",
                             color = Color.White,
                             fontSize = 26.sp,
                             fontWeight = FontWeight.ExtraBold,
@@ -624,7 +631,7 @@ private fun PowerConnectButton(
                 }
             }
         }
-
+        
         Spacer(modifier = Modifier.height(14.dp))
 
         Text(
