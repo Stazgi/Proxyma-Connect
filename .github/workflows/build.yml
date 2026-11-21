@@ -59,6 +59,8 @@ jobs:
         java-version: '21'
 
     - name: Build Release APK
+      env:
+        SUB_BASE_URL: ${{ secrets.SUB_BASE_URL }}
       run: |
         cd ${{ github.workspace }}/V2rayNG
         echo "sdk.dir=${ANDROID_HOME}" > local.properties
