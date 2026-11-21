@@ -66,15 +66,17 @@ jobs:
         ./gradlew assembleFdroidRelease
 
     - name: Sign Release APK
-      uses: r0adkll/sign-android-release@v1
-      id: sign_app
-      with:
-        releaseDirectory: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/fdroid/release
-        signingKeyBase64: ${{ secrets.SIGNING_KEY }}
-        alias: ${{ secrets.ALIAS }}
-        keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
-        keyPassword: ${{ secrets.KEY_PASSWORD }}
-        buildToolsVersion: "37.0.0"
+      run: |
+        echo "${{ secrets.SIGNING_KEY }}" | base64 -d > release.jks
+        BUILD_TOOLS="$ANDROID_HOME/build-tools/37.0.0"
+        RELEASE_DIR="${{ github.workspace }}/V2rayNG/app/build/outputs/apk/fdroid/release"
+        for apk in "$RELEASE_DIR"/*.apk; do
+          aligned="${apk%.apk}-aligned.apk"
+          signed="${apk%.apk}-signed.apk"
+          "$BUILD_TOOLS/zipalign" -v -p 4 "$apk" "$aligned"
+          "$BUILD_TOOLS/apksigner" sign --ks release.jks --ks-key-alias "${{ secrets.ALIAS }}" --ks-pass "pass:${{ secrets.KEY_STORE_PASSWORD }}" --key-pass "pass:${{ secrets.KEY_PASSWORD }}" --out "$signed" "$aligned"
+        done
+        rm -f release.jks
 
     - name: Upload Proxyma Connect APK (arm64-v8a)
       uses: actions/upload-artifact@v7
@@ -89,4 +91,3 @@ jobs:
       with:
         name: Proxyma-Connect-armeabi-v7a-32bit
         path: ${{ github.workspace }}/V2rayNG/app/build/outputs/apk/fdroid/release/*armeabi-v7a*-signed.apk
-        
