@@ -74,6 +74,7 @@ jobs:
         alias: ${{ secrets.ALIAS }}
         keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
         keyPassword: ${{ secrets.KEY_PASSWORD }}
+        buildToolsVersion: "37.0.0"
 
     - name: Upload Proxyma Connect APK (arm64-v8a)
       uses: actions/upload-artifact@v7
