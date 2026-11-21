@@ -277,8 +277,6 @@
                 android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
                 android:value="test" />
         </service>
-
-        <receiver
          
         <receiver
             android:name=".receiver.BootReceiver"
