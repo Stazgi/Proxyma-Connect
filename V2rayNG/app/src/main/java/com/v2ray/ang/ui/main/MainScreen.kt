@@ -1,5 +1,9 @@
 package com.v2ray.ang.ui.main
 
+import android.app.Activity
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -36,11 +40,12 @@ import com.v2ray.ang.dto.entities.SubscriptionItem
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsManager
 import com.v2ray.ang.handler.SubscriptionUpdater
+import com.v2ray.ang.ui.ScannerActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-private const val PROXYMA_SUB_BASE_URL = "https://proxymavpn.duckdns.org:2096/a8f3b2c9d1/"
+private const val PROXYMA_SUB_BASE_URL = "https://duckdns.org"
 
 private val BgDarkTop = Color(0xFF0B0F19)
 private val BgDarkBottom = Color(0xFF131B2E)
@@ -82,18 +87,17 @@ fun MainScreen(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = androidx.compose.ui.platform.LocalContext.current
-val deviceHwid = remember {
-    android.provider.Settings.Secure.getString(
-        context.contentResolver,
-        android.provider.Settings.Secure.ANDROID_ID
-    ) ?: "android-unknown"
-}
-val deviceModel = remember { "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}".trim() }
-val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
+    val deviceHwid = remember {
+        android.provider.Settings.Secure.getString(
+            context.contentResolver,
+            android.provider.Settings.Secure.ANDROID_ID
+        ) ?: "android-unknown"
+    }
+    val deviceModel = remember { "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}".trim() }
+    val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
 
     var showKeyDialog by remember { mutableStateOf(false) }
-
-            fun activateKey(rawUuid: String) {
+        fun activateKey(rawUuid: String) {
         val cleanKey = rawUuid.trim()
         if (cleanKey.isEmpty()) return
         MmkvManager.encodeSettings("proxyma_last_key", cleanKey)
@@ -137,7 +141,7 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
                     }
                 }
             }
-            
+
             try {
                 val decodedText = if (cleanKey.startsWith("http")) {
                     fetchConfigs(cleanKey)
@@ -150,7 +154,7 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
                     }
                 }
 
-                 val cleanConfigs = decodedText.lines()
+                val cleanConfigs = decodedText.lines()
                     .map { it.trim() }
                     .filter { it.startsWith("vless://") || it.startsWith("vmess://") || it.startsWith("trojan://") || it.startsWith("ss://") }
                     .joinToString("\n")
@@ -178,8 +182,6 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
                         ).show()
                     }
                 }
-                
-                            
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     android.widget.Toast.makeText(
@@ -190,19 +192,36 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
                 }
             }
         }
+     }
+         val qrScannerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val scannedText = result.data?.getStringExtra("SCAN_RESULT")?.trim().orEmpty()
+            if (scannedText.isNotEmpty()) {
+                showKeyDialog = false
+                activateKey(scannedText)
+            }
+        }
     }
-    
+
+    fun launchQrScanner() {
+        qrScannerLauncher.launch(Intent(context, ScannerActivity::class.java))
+    }
+
     if (showKeyDialog) {
         KeyInputDialog(
             isLoading = isLoading,
             onDismiss = { showKeyDialog = false },
+            onScanQr = { launchQrScanner() },
             onActivate = { uuid ->
                 activateKey(uuid)
                 showKeyDialog = false
             }
         )
     }
-        ModalNavigationDrawer(
+
+    ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
             MainDrawerContent(
@@ -285,25 +304,26 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
 
                 if (servers.isEmpty() && !isLoading) {
                     EmptyActivationCard(
+                        onScanQr = { launchQrScanner() },
                         onActivate = { uuid -> activateKey(uuid) }
                     )
                 } else {
-                        SubscriptionStatusCard(
+                    SubscriptionStatusCard(
                         groupRemarks = activeGroup?.remarks,
                         isLoading = isLoading,
                         onRefresh = {
-    val savedKey = MmkvManager.decodeSettingsString("proxyma_last_key").orEmpty()
-    if (savedKey.isNotEmpty()) {
-        activateKey(savedKey)
-    } else {
-        showKeyDialog = true
-    }
-},
-                            onDeleteSub = {
+                            val savedKey = MmkvManager.decodeSettingsString("proxyma_last_key").orEmpty()
+                            if (savedKey.isNotEmpty()) {
+                                activateKey(savedKey)
+                            } else {
+                                showKeyDialog = true
+                            }
+                        },
+                        onDeleteSub = {
                             MmkvManager.encodeSettings("proxyma_last_key", "")
                             scope.launch(Dispatchers.IO) {
                                 MmkvManager.decodeSubscriptions().forEach { cache ->
-                                SettingsManager.removeSubscriptionWithDefault(cache.guid)
+                                    SettingsManager.removeSubscriptionWithDefault(cache.guid)
                                 }
                                 withContext(Dispatchers.Main) {
                                     onAction(MainAction.RemoveAllServers)
@@ -312,9 +332,7 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
                             }
                         }
                     )
-                                        
-
-                    Spacer(modifier = Modifier.height(24.dp))
+                                        Spacer(modifier = Modifier.height(24.dp))
 
                     PowerConnectButton(
                         isRunning = isRunning,
@@ -326,7 +344,7 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
 
                     Spacer(modifier = Modifier.height(24.dp))
 
-                                        Row(
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
@@ -349,7 +367,6 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
                             )
                         }
                     }
-                                        
 
                     Spacer(modifier = Modifier.height(10.dp))
 
@@ -373,6 +390,7 @@ val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
         }
     }
 }
+
 @Composable
 private fun SubscriptionStatusCard(
     groupRemarks: String?,
@@ -445,7 +463,10 @@ private fun SubscriptionStatusCard(
 }
 
 @Composable
-private fun EmptyActivationCard(onActivate: (String) -> Unit) {
+private fun EmptyActivationCard(
+    onScanQr: () -> Unit,
+    onActivate: (String) -> Unit
+) {
     var inputKey by remember { mutableStateOf("") }
     val clipboard = LocalClipboardManager.current
 
@@ -474,7 +495,7 @@ private fun EmptyActivationCard(onActivate: (String) -> Unit) {
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Скопируйте ключ (UUID) в Telegram-боте Proxyma VPN и вставьте его ниже",
+                    text = "Скопируйте ключ (UUID) в Telegram-боте Proxyma VPN или отсканируйте QR-код",
                     color = TextSecondary,
                     fontSize = 13.sp,
                     textAlign = TextAlign.Center
@@ -499,10 +520,30 @@ private fun EmptyActivationCard(onActivate: (String) -> Unit) {
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                TextButton(
-                    onClick = { clipboard.getText()?.text?.let { inputKey = it.trim() } }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Вставить из буфера обмена", color = AccentCyan, fontSize = 13.sp)
+                    TextButton(
+                        onClick = { clipboard.getText()?.text?.let { inputKey = it.trim() } }
+                    ) {
+                        Text("Из буфера", color = AccentCyan, fontSize = 13.sp)
+                    }
+                    TextButton(
+                        onClick = onScanQr
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_scan_24dp),
+                                contentDescription = "Сканировать QR",
+                                tint = AccentCyan,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Сканировать QR", color = AccentCyan, fontSize = 13.sp)
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(14.dp))
@@ -524,7 +565,6 @@ private fun EmptyActivationCard(onActivate: (String) -> Unit) {
         }
     }
 }
-    
 @Composable
 private fun PowerConnectButton(
     isRunning: Boolean,
@@ -672,6 +712,7 @@ private fun ServerLocationCard(
 private fun KeyInputDialog(
     isLoading: Boolean,
     onDismiss: () -> Unit,
+    onScanQr: () -> Unit,
     onActivate: (String) -> Unit
 ) {
     var keyText by remember { mutableStateOf("") }
@@ -686,7 +727,7 @@ private fun KeyInputDialog(
         text = {
             Column {
                 Text(
-                    "Вставьте новый UUID из бота Proxyma VPN:",
+                    "Вставьте новый UUID из бота Proxyma VPN или отсканируйте QR-код:",
                     color = TextSecondary,
                     fontSize = 13.sp
                 )
@@ -703,10 +744,33 @@ private fun KeyInputDialog(
                         unfocusedBorderColor = CardBorder
                     )
                 )
-                TextButton(
-                    onClick = { clipboard.getText()?.text?.let { keyText = it.trim() } }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Вставить из буфера", color = AccentCyan, fontSize = 12.sp)
+                    TextButton(
+                        onClick = { clipboard.getText()?.text?.let { keyText = it.trim() } },
+                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    ) {
+                        Text("Из буфера", color = AccentCyan, fontSize = 12.sp)
+                    }
+                    TextButton(
+                        onClick = onScanQr,
+                        contentPadding = PaddingValues(horizontal = 4.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_scan_24dp),
+                                contentDescription = "Сканировать QR",
+                                tint = AccentCyan,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("Сканировать QR", color = AccentCyan, fontSize = 12.sp)
+                        }
+                    }
                 }
             }
         },
