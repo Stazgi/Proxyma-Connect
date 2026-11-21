@@ -1,6 +1,5 @@
 name: Generate Keystore
-on:
-  workflow_dispatch:
+on: [push]
 
 jobs:
   generate:
@@ -18,3 +17,4 @@ jobs:
         with:
           name: release-keystore
           path: release.jks
+          
