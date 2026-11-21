@@ -76,9 +76,6 @@
                 <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
             </intent-filter>
 
-            <meta-data
-                android:name="android.app.shortcuts"
-                android:resource="@xml/shortcuts" />
         </activity>
         <activity
             android:name=".ui.server.ServerVmessActivity"
@@ -282,18 +279,7 @@
         </service>
 
         <receiver
-            android:name=".receiver.WidgetProvider"
-            android:exported="true"
-            android:process=":daemon">
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/app_widget_provider" />
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="${applicationId}.action.widget.click" />
-                <action android:name="${applicationId}.action.activity" />
-            </intent-filter>
-        </receiver>
+         
         <receiver
             android:name=".receiver.BootReceiver"
             android:exported="true"
@@ -309,8 +295,8 @@
             android:name=".service.QSTileService"
             android:exported="true"
             android:foregroundServiceType="specialUse"
-            android:icon="@drawable/ic_stat_name"
-            android:label="@string/app_tile_name"
+            android:icon="@drawable/ic_proxyma_mono"
+            android:label="Proxyma Connect"
             android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
             android:process=":daemon">
             <intent-filter>
