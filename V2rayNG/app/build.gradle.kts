@@ -15,6 +15,9 @@ android {
         targetSdk = 37
         versionCode = 760
         versionName = "2.4.0"
+        
+        val subBaseUrl = System.getenv("SUB_BASE_URL") ?: ""
+        buildConfigField("String", "SUB_BASE_URL", "\"$subBaseUrl\"")
 
         val abiFilterList = (properties["ABI_FILTERS"] as? String)?.split(';')
         splits {
