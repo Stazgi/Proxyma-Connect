@@ -5,7 +5,7 @@
 ## Скачать / Download
 
 Актуальную подписанную версию APK можно скачать в разделе релизов этого репозитория:
-👉 **[Скачать Proxyma Connect (Releases)](https://github.com)**
+👉 **[Скачать Proxyma Connect (Releases)](https://github.com/Stazgi/Proxyma-Connect/releases/tag/v1.0.141)**
 
 ## Безопасность и открытый код
 
