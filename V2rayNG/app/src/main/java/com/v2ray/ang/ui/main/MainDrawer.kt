@@ -164,7 +164,7 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
             Spacer(modifier = Modifier.weight(1f))
 
             Text(
-                text = "Proxyma Connect • v1.0",
+                text = "Proxyma Connect • v${com.v2ray.ang.BuildConfig.VERSION_NAME}",
                 color = TextSecondary,
                 fontSize = 11.sp,
                 modifier = Modifier
