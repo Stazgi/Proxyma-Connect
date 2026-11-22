@@ -13,8 +13,10 @@ android {
         applicationId = "org.proxymaconnect.app"
         minSdk = 24
         targetSdk = 37
-        versionCode = 760
-        versionName = "2.4.0"
+        val runNumber = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
+        versionCode = 760 + runNumber
+        versionName = "1.0.$runNumber"
+
         
         val subBaseUrl = System.getenv("SUB_BASE_URL") ?: ""
         buildConfigField("String", "SUB_BASE_URL", "\"$subBaseUrl\"")
