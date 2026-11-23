@@ -16,4 +16,5 @@
 ## Лицензия и авторство / Credits & License
 
 Проект основан на оригинальном клиенте **[2dust/v2rayNG](https://github.com)** и распространяется в соответствии с лицензией **[GNU General Public License v3.0](LICENSE)**.
+
 **Signing Certificate SHA-256:** `88:59:E5:4D:A8:0C:B8:0F:FA:C7:45:48:37:C5:63:41:CB:82:CB:6C:7E:64:CC:9B:58:FE:B3:48:6E:96:FB:A5`
