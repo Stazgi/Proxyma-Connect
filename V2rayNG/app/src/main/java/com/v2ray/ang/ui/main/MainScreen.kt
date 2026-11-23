@@ -34,18 +34,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.v2ray.ang.handler.AngConfigManager
 import com.v2ray.ang.R
-import com.v2ray.ang.dto.entities.SubscriptionItem
+import com.v2ray.ang.handler.AngConfigManager
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsManager
-import com.v2ray.ang.handler.SubscriptionUpdater
 import com.v2ray.ang.ui.ScannerActivity
+import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private val PROXYMA_SUB_BASE_URL = com.v2ray.ang.BuildConfig.SUB_BASE_URL
+private const val TELEGRAM_BOT_URL = "https://t.me/ProxymaVPN_robot"
+private const val PRIVACY_POLICY_URL = "https://github.com"
 
 private val BgDarkTop = Color(0xFF0B0F19)
 private val BgDarkBottom = Color(0xFF131B2E)
@@ -97,23 +98,19 @@ fun MainScreen(
     val osVersion = remember { android.os.Build.VERSION.RELEASE ?: "14" }
 
     var showKeyDialog by remember { mutableStateOf(false) }
-        fun activateKey(rawUuid: String) {
+    var showVpnDisclosure by remember { mutableStateOf(false) }
+    val hasAcceptedDisclosure = remember {
+        mutableStateOf(MmkvManager.decodeSettingsBool("vpn_disclosure_accepted", false))
+    }
+
+    fun activateKey(rawUuid: String) {
         val cleanKey = rawUuid.trim()
         if (cleanKey.isEmpty()) return
         MmkvManager.encodeSettings("proxyma_last_key", cleanKey)
 
         scope.launch(Dispatchers.IO) {
-            val trustAll = arrayOf<javax.net.ssl.TrustManager>(object : javax.net.ssl.X509TrustManager {
-                override fun getAcceptedIssuers(): Array<java.security.cert.X509Certificate> = arrayOf()
-                override fun checkClientTrusted(certs: Array<java.security.cert.X509Certificate>, authType: String) {}
-                override fun checkServerTrusted(certs: Array<java.security.cert.X509Certificate>, authType: String) {}
-            })
-            val sc = javax.net.ssl.SSLContext.getInstance("TLS")
-            sc.init(null, trustAll, java.security.SecureRandom())
             fun fetchConfigs(url: String): String {
                 val connection = java.net.URL(url).openConnection() as javax.net.ssl.HttpsURLConnection
-                connection.sslSocketFactory = sc.socketFactory
-                connection.hostnameVerifier = javax.net.ssl.HostnameVerifier { _, _ -> true }
                 connection.connectTimeout = 10000
                 connection.readTimeout = 10000
                 connection.setRequestProperty("User-Agent", "v2rayNG/1.9.0")
@@ -135,14 +132,19 @@ fun MainScreen(
                 } else {
                     val cleanBase64 = rawBody.replace("\\s".toRegex(), "")
                     try {
-                        String(android.util.Base64.decode(cleanBase64, android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP), Charsets.UTF_8)
+                        String(
+                            android.util.Base64.decode(
+                                cleanBase64,
+                                android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP
+                            ),
+                            Charsets.UTF_8
+                        )
                     } catch (_: Exception) {
                         String(android.util.Base64.decode(cleanBase64, android.util.Base64.DEFAULT), Charsets.UTF_8)
                     }
                 }
             }
-
-            try {
+                        try {
                 val decodedText = if (cleanKey.startsWith("http")) {
                     fetchConfigs(cleanKey)
                 } else {
@@ -156,7 +158,12 @@ fun MainScreen(
 
                 val cleanConfigs = decodedText.lines()
                     .map { it.trim() }
-                    .filter { it.startsWith("vless://") || it.startsWith("vmess://") || it.startsWith("trojan://") || it.startsWith("ss://") }
+                    .filter {
+                        it.startsWith("vless://") ||
+                            it.startsWith("vmess://") ||
+                            it.startsWith("trojan://") ||
+                            it.startsWith("ss://")
+                    }
                     .joinToString("\n")
 
                 if (cleanConfigs.isNotEmpty()) {
@@ -177,7 +184,7 @@ fun MainScreen(
                     withContext(Dispatchers.Main) {
                         android.widget.Toast.makeText(
                             context,
-                            "Пустой ответ: ${decodedText.take(60)}",
+                            "Ключ не найден или недействителен",
                             android.widget.Toast.LENGTH_LONG
                         ).show()
                     }
@@ -192,8 +199,9 @@ fun MainScreen(
                 }
             }
         }
-     }
-         val qrScannerLauncher = rememberLauncherForActivityResult(
+    }
+
+    val qrScannerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -217,6 +225,23 @@ fun MainScreen(
             onActivate = { uuid ->
                 activateKey(uuid)
                 showKeyDialog = false
+            }
+        )
+    }
+
+    if (showVpnDisclosure) {
+        VpnDisclosureDialog(
+            onAccept = {
+                MmkvManager.encodeSettings("vpn_disclosure_accepted", true)
+                hasAcceptedDisclosure.value = true
+                showVpnDisclosure = false
+                onAction(MainAction.ToggleService)
+            },
+            onDecline = {
+                showVpnDisclosure = false
+            },
+            onOpenPrivacy = {
+                Utils.openUri(context, PRIVACY_POLICY_URL)
             }
         )
     }
@@ -301,8 +326,7 @@ fun MainScreen(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-
-                if (servers.isEmpty() && !isLoading) {
+                                if (servers.isEmpty() && !isLoading) {
                     EmptyActivationCard(
                         onScanQr = { launchQrScanner() },
                         onActivate = { uuid -> activateKey(uuid) }
@@ -332,13 +356,20 @@ fun MainScreen(
                             }
                         }
                     )
-                                        Spacer(modifier = Modifier.height(24.dp))
+
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     PowerConnectButton(
                         isRunning = isRunning,
                         isLoading = isLoading,
                         statusText = statusText,
-                        onToggle = { onAction(MainAction.ToggleService) },
+                        onToggle = {
+                            if (!isRunning && !hasAcceptedDisclosure.value) {
+                                showVpnDisclosure = true
+                            } else {
+                                onAction(MainAction.ToggleService)
+                            }
+                        },
                         onTestPing = { onAction(MainAction.TestCurrentServer) }
                     )
 
@@ -371,7 +402,9 @@ fun MainScreen(
                     Spacer(modifier = Modifier.height(10.dp))
 
                     LazyColumn(
-                        modifier = Modifier.fillMaxWidth().weight(1f),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         items(servers, key = { it.guid }) { server ->
@@ -399,7 +432,7 @@ private fun SubscriptionStatusCard(
     onDeleteSub: () -> Unit
 ) {
     val title = if (groupRemarks.isNullOrBlank() || groupRemarks.equals("Default", ignoreCase = true)) {
-        "Подписка Proxyma VPN"
+        "Конфигурация Proxyma"
     } else {
         groupRemarks
     }
@@ -461,7 +494,6 @@ private fun SubscriptionStatusCard(
         }
     }
 }
-
 @Composable
 private fun EmptyActivationCard(
     onScanQr: () -> Unit,
@@ -469,6 +501,7 @@ private fun EmptyActivationCard(
 ) {
     var inputKey by remember { mutableStateOf("") }
     val clipboard = LocalClipboardManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -495,18 +528,36 @@ private fun EmptyActivationCard(
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = "Скопируйте ключ (UUID) в Telegram-боте Proxyma VPN или отсканируйте QR-код",
+                    text = "Получите ключ в Telegram-боте, вставьте из буфера или отсканируйте QR-код",
                     color = TextSecondary,
                     fontSize = 13.sp,
                     textAlign = TextAlign.Center
                 )
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(18.dp))
+
+                OutlinedButton(
+                    onClick = { Utils.openUri(context, TELEGRAM_BOT_URL) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    border = BorderStroke(1.dp, AccentCyan)
+                ) {
+                    Text(
+                        text = "✈ Войти через Telegram",
+                        color = AccentCyan,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(14.dp))
 
                 OutlinedTextField(
                     value = inputKey,
                     onValueChange = { inputKey = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Например: ce348496-200d-...", color = TextSecondary, fontSize = 13.sp) },
+                    placeholder = { Text("Введите ключ доступа (UUID)", color = TextSecondary, fontSize = 13.sp) },
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
@@ -518,7 +569,7 @@ private fun EmptyActivationCard(
                     )
                 )
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -546,11 +597,13 @@ private fun EmptyActivationCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Button(
                     onClick = { onActivate(inputKey) },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp),
                     shape = RoundedCornerShape(14.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = AccentIndigo)
                 ) {
@@ -559,6 +612,18 @@ private fun EmptyActivationCard(
                         color = Color.White,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(10.dp))
+
+                TextButton(
+                    onClick = { Utils.openUri(context, PRIVACY_POLICY_URL) }
+                ) {
+                    Text(
+                        text = "Политика конфиденциальности",
+                        color = TextSecondary,
+                        fontSize = 12.sp
                     )
                 }
             }
@@ -631,7 +696,7 @@ private fun PowerConnectButton(
                 }
             }
         }
-        
+
         Spacer(modifier = Modifier.height(14.dp))
 
         Text(
@@ -714,7 +779,6 @@ private fun ServerLocationCard(
         }
     }
 }
-
 @Composable
 private fun KeyInputDialog(
     isLoading: Boolean,
@@ -734,7 +798,7 @@ private fun KeyInputDialog(
         text = {
             Column {
                 Text(
-                    "Вставьте новый UUID из бота Proxyma VPN или отсканируйте QR-код:",
+                    "Вставьте новый ключ (UUID) из Telegram-бота или отсканируйте QR-код:",
                     color = TextSecondary,
                     fontSize = 13.sp
                 )
@@ -793,6 +857,65 @@ private fun KeyInputDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Отмена", color = TextSecondary)
+            }
+        }
+    )
+}
+
+@Composable
+private fun VpnDisclosureDialog(
+    onAccept: () -> Unit,
+    onDecline: () -> Unit,
+    onOpenPrivacy: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDecline,
+        containerColor = CardSurface,
+        title = {
+            Text(
+                text = "VPN-подключение и ваши данные",
+                color = TextPrimary,
+                fontWeight = FontWeight.Bold,
+                fontSize = 18.sp
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Proxyma Connect использует системный интерфейс Android VpnService для создания зашифрованного туннеля и защиты вашего интернет-трафика.",
+                    color = TextPrimary,
+                    fontSize = 13.sp
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "• Для авторизации ключа и привязки устройства на сервер передаются идентификатор устройства (Android ID), модель и версия ОС.\n• Мы не ведем журналы вашей сетевой активности и не передаем данные третьим лицам.",
+                    color = TextSecondary,
+                    fontSize = 12.sp
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(
+                    onClick = onOpenPrivacy,
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text(
+                        text = "Открыть Политику конфиденциальности",
+                        color = AccentCyan,
+                        fontSize = 12.sp
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onAccept,
+                colors = ButtonDefaults.buttonColors(containerColor = AccentIndigo)
+            ) {
+                Text("Согласен", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDecline) {
+                Text("Отказаться", color = TextSecondary)
             }
         }
     )
