@@ -1,9 +1,8 @@
 package com.v2ray.ang.ui.main
 
-import android.content.Intent
-import android.net.Uri
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -24,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.v2ray.ang.R
 import com.v2ray.ang.ui.compose.verticalScrollbar
+import com.v2ray.ang.util.Utils
 
 private const val TELEGRAM_BOT_URL = "https://t.me/ProxymaVPN_robot"
 
@@ -50,7 +50,8 @@ enum class MainDestination(@DrawableRes val iconRes: Int, @StringRes val labelRe
 private val proxymaDrawerItems = listOf(
     MainDestination.PerAppProxy,
     MainDestination.Routing,
-    MainDestination.Settings
+    MainDestination.Settings,
+    MainDestination.About
 )
 
 @Composable
@@ -70,7 +71,6 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
                 .verticalScrollbar(drawerScrollState)
                 .padding(16.dp)
         ) {
-            // Фирменная шапка Proxyma Connect
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
@@ -141,21 +141,17 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
             HorizontalDivider(color = HeaderCardBg)
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Кнопка перехода в Telegram-бот
-            Button(
-                onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(TELEGRAM_BOT_URL))
-                    context.startActivity(intent)
-                },
+            OutlinedButton(
+                onClick = { Utils.openUri(context, TELEGRAM_BOT_URL) },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = AccentIndigo)
+                border = BorderStroke(1.dp, AccentCyan)
             ) {
                 Text(
-                    text = "Продлить подписку в боте",
-                    color = Color.White,
+                    text = "✈ Наш Telegram-бот",
+                    color = AccentCyan,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
