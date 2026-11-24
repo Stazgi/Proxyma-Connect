@@ -46,7 +46,7 @@ import kotlinx.coroutines.withContext
 
 private val PROXYMA_SUB_BASE_URL = com.v2ray.ang.BuildConfig.SUB_BASE_URL
 private const val TELEGRAM_BOT_URL = "https://t.me/ProxymaVPN_robot"
-private const val PRIVACY_POLICY_URL = "https://github.com"
+private const val PRIVACY_POLICY_URL = "https://github.com/Stazgi/Proxyma-Connect/blob/77555e2b96afaacb194940ab10483373434a6c2d/README.md"
 
 private val BgDarkTop = Color(0xFF0B0F19)
 private val BgDarkBottom = Color(0xFF131B2E)
