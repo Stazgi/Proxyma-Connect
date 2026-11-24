@@ -9,6 +9,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.lifecycleScope
 import com.v2ray.ang.AngApplication
 import com.v2ray.ang.AppConfig
@@ -56,6 +57,8 @@ import kotlinx.coroutines.withContext
 
 class MainActivity : HelperBaseComponentActivity() {
 
+    val incomingAuthKey = mutableStateOf<String?>(null)
+
     private val mainViewModel: MainViewModel by viewModels {
         MainViewModel.Factory(application, MainRepository(application as AngApplication))
     }
@@ -95,8 +98,26 @@ class MainActivity : HelperBaseComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         mainViewModel.onAction(MainAction.Initialize)
+        handleDeepLink(intent)
 
         checkAndRequestPermission(PermissionType.POST_NOTIFICATIONS) {}
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: Intent?) {
+        val uri = intent?.data ?: return
+        if (uri.scheme == "proxymaconnect" && uri.host == "auth") {
+            val key = uri.getQueryParameter("key")?.trim().orEmpty()
+            if (key.isNotEmpty()) {
+                incomingAuthKey.value = key
+            }
+            intent.data = null
+        }
     }
 
     @Composable
@@ -125,8 +146,7 @@ class MainActivity : HelperBaseComponentActivity() {
             onNavigate = { route -> navigateTo(route) },
         )
     }
-
-    private fun shareToClipboard(guid: String): Boolean =
+        private fun shareToClipboard(guid: String): Boolean =
         AngConfigManager.share2Clipboard(this, guid) == 0
 
     private fun shareFullContentAsync(guid: String) {
