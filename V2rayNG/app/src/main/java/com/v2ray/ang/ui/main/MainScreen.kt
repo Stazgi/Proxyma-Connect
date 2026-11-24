@@ -27,12 +27,15 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.v2ray.ang.R
 import com.v2ray.ang.handler.AngConfigManager
@@ -43,6 +46,12 @@ import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.FileNotFoundException
+import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import javax.net.ssl.HttpsURLConnection
 
 private val PROXYMA_SUB_BASE_URL = com.v2ray.ang.BuildConfig.SUB_BASE_URL
 private const val TELEGRAM_BOT_URL = "https://t.me/ProxymaVPN_robot?start=app_login"
@@ -57,6 +66,90 @@ private val AccentIndigo = Color(0xFF6366F1)
 private val ConnectedGreen = Color(0xFF10B981)
 private val TextPrimary = Color(0xFFF8FAFC)
 private val TextSecondary = Color(0xFF94A3B8)
+
+// Вынесено из activateKey: чистая функция без замыканий.
+// Соединение гарантированно закрывается через finally.
+private fun fetchSubscription(
+    url: String,
+    deviceHwid: String,
+    deviceModel: String,
+    osVersion: String
+): String {
+    val connection = URL(url).openConnection() as HttpsURLConnection
+    try {
+        connection.connectTimeout = 10_000
+        connection.readTimeout = 10_000
+        connection.setRequestProperty("User-Agent", "v2rayNG/1.9.0")
+        // Просим gzip и обрабатываем его сами (раньше identity + ветка GZIP были несовместимы).
+        connection.setRequestProperty("Accept-Encoding", "gzip")
+        connection.setRequestProperty("X-HWID", deviceHwid)
+        connection.setRequestProperty("X-Device-Model", deviceModel)
+        connection.setRequestProperty("X-Device-OS", "Android")
+        connection.setRequestProperty("X-Ver-OS", osVersion)
+
+        // Открываем поток до чтения contentEncoding — иначе header может быть ещё null.
+        val inputStream = connection.inputStream
+        val contentEncoding = connection.contentEncoding
+        val userInfoHeader = connection.getHeaderField("Subscription-Userinfo").orEmpty()
+
+        val stream = if ("gzip".equals(contentEncoding, ignoreCase = true)) {
+            java.util.zip.GZIPInputStream(inputStream)
+        } else {
+            inputStream
+        }
+        val rawBody = stream.bufferedReader().use { it.readText() }.trim()
+
+        if (userInfoHeader.isNotEmpty()) {
+            val infoMap = userInfoHeader.split(";")
+                .mapNotNull { part ->
+                    val kv = part.trim().split("=")
+                    if (kv.size == 2) kv[0].lowercase() to (kv[1].toLongOrNull() ?: 0L) else null
+                }.toMap()
+            val usedBytes = (infoMap["upload"] ?: 0L) + (infoMap["download"] ?: 0L)
+            val totalBytes = infoMap["total"] ?: 0L
+            val expireSec = infoMap["expire"] ?: 0L
+
+            val gbDiv = 1024.0 * 1024.0 * 1024.0
+            val trafficText = if (totalBytes > 0L) {
+                val leftGb = (totalBytes - usedBytes).coerceAtLeast(0L) / gbDiv
+                val totalGb = totalBytes / gbDiv
+                String.format(Locale.US, "Остаток: %.2f из %.2f ГБ", leftGb, totalGb)
+            } else {
+                val usedGb = usedBytes / gbDiv
+                String.format(Locale.US, "Использовано: %.2f ГБ • Безлимит", usedGb)
+            }
+
+            val dateText = if (expireSec > 0L) {
+                val sdf = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+                " • До ${sdf.format(Date(expireSec * 1000L))}"
+            } else {
+                " • Сброс раз в 30 дн."
+            }
+            MmkvManager.encodeSettings("proxyma_sub_info", "$trafficText$dateText")
+        } else {
+            MmkvManager.encodeSettings("proxyma_sub_info", "")
+        }
+
+        return if (rawBody.contains("://")) {
+            rawBody
+        } else {
+            val cleanBase64 = rawBody.replace("\\s".toRegex(), "")
+            try {
+                String(
+                    android.util.Base64.decode(
+                        cleanBase64,
+                        android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP
+                    ),
+                    Charsets.UTF_8
+                )
+            } catch (_: Exception) {
+                String(android.util.Base64.decode(cleanBase64, android.util.Base64.DEFAULT), Charsets.UTF_8)
+            }
+        }
+    } finally {
+        connection.disconnect()
+    }
+}
 
 @Composable
 fun MainScreen(
@@ -79,12 +172,12 @@ fun MainScreen(
     val selectedGuid = uiState.selectedGuid
     val statusText = mainViewModel.formatStatus(uiState.status)
 
-    val view = androidx.compose.ui.platform.LocalView.current
+    val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as? Activity)?.window
             if (window != null) {
-                androidx.core.view.WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
             }
         }
     }
@@ -97,7 +190,7 @@ fun MainScreen(
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
     val deviceHwid = remember {
         android.provider.Settings.Secure.getString(
             context.contentResolver,
@@ -109,7 +202,7 @@ fun MainScreen(
 
     var showKeyDialog by remember { mutableStateOf(false) }
     var showVpnDisclosure by remember { mutableStateOf(false) }
-    val hasAcceptedDisclosure = remember {
+    var hasAcceptedDisclosure by remember {
         mutableStateOf(MmkvManager.decodeSettingsBool("vpn_disclosure_accepted", false))
     }
 
@@ -118,86 +211,28 @@ fun MainScreen(
         if (cleanKey.isEmpty()) return
         MmkvManager.encodeSettings("proxyma_last_key", cleanKey)
 
+        // Фиксируем группу до запуска корутины, иначе пользователь может её переключить во время загрузки.
+        val targetGroupId = uiState.selectedGroupId
+
         scope.launch(Dispatchers.IO) {
-            fun fetchConfigs(url: String): String {
-                val connection = java.net.URL(url).openConnection() as javax.net.ssl.HttpsURLConnection
-                connection.connectTimeout = 10000
-                connection.readTimeout = 10000
-                connection.setRequestProperty("User-Agent", "v2rayNG/1.9.0")
-                connection.setRequestProperty("Accept-Encoding", "identity")
-                connection.setRequestProperty("X-HWID", deviceHwid)
-                connection.setRequestProperty("X-Device-Model", deviceModel)
-                connection.setRequestProperty("X-Device-OS", "Android")
-                connection.setRequestProperty("X-Ver-OS", osVersion)
-
-                val stream = if ("gzip".equals(connection.contentEncoding, ignoreCase = true)) {
-                    java.util.zip.GZIPInputStream(connection.inputStream)
+            try {
+                val decodedText = if (cleanKey.startsWith("http", ignoreCase = true)) {
+                    fetchSubscription(cleanKey, deviceHwid, deviceModel, osVersion)
                 } else {
-                    connection.inputStream
-                }
-                val rawBody = stream.bufferedReader().use { it.readText() }.trim()
-                val userInfoHeader = connection.getHeaderField("Subscription-Userinfo").orEmpty()
-                if (userInfoHeader.isNotEmpty()) {
-                    val infoMap = userInfoHeader.split(";")
-                        .mapNotNull { part ->
-                            val kv = part.trim().split("=")
-                            if (kv.size == 2) kv[0].lowercase() to (kv[1].toLongOrNull() ?: 0L) else null
-                        }.toMap()
-                    val usedBytes = (infoMap["upload"] ?: 0L) + (infoMap["download"] ?: 0L)
-                    val totalBytes = infoMap["total"] ?: 0L
-                    val expireSec = mapOf("expire" to (infoMap["expire"] ?: 0L))["expire"] ?: 0L
-
-                    val gbDiv = 1024.0 * 1024.0 * 1024.0
-                    val trafficText = if (totalBytes > 0L) {
-                        val leftGb = ((totalBytes - usedBytes).coerceAtLeast(0L)) / gbDiv
-                        val totalGb = totalBytes / gbDiv
-                        String.format(java.util.Locale.US, "Остаток: %.2f из %.2f ГБ", leftGb, totalGb)
+                    val subId = cleanKey.take(16)
+                    if (subId == cleanKey) {
+                        // Короткий ключ: фолбэк на тот же URL не имеет смысла — делаем один запрос.
+                        fetchSubscription("$PROXYMA_SUB_BASE_URL$cleanKey", deviceHwid, deviceModel, osVersion)
                     } else {
-                        val usedGb = usedBytes / gbDiv
-                        String.format(java.util.Locale.US, "Использовано: %.2f ГБ • Безлимит", usedGb)
-                    }
-
-                    val dateText = if (expireSec > 0L) {
-                        val sdf = java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.getDefault())
-                        " • До ${sdf.format(java.util.Date(expireSec * 1000L))}"
-                    } else {
-                        " • Сброс раз в 30 дн."
-                    }
-                    MmkvManager.encodeSettings("proxyma_sub_info", "$trafficText$dateText")
-                } else {
-                    MmkvManager.encodeSettings("proxyma_sub_info", "")
-                }
-                connection.disconnect()
-                return if (rawBody.contains("://")) {
-                    rawBody
-                } else {
-                    val cleanBase64 = rawBody.replace("\\s".toRegex(), "")
-                    try {
-                        String(
-                            android.util.Base64.decode(
-                                cleanBase64,
-                                android.util.Base64.URL_SAFE or android.util.Base64.NO_WRAP
-                            ),
-                            Charsets.UTF_8
-                        )
-                    } catch (_: Exception) {
-                        String(android.util.Base64.decode(cleanBase64, android.util.Base64.DEFAULT), Charsets.UTF_8)
-                    }
-                }
-            }
                         try {
-                val decodedText = if (cleanKey.startsWith("http")) {
-                    fetchConfigs(cleanKey)
-                } else {
-                    val subId = if (cleanKey.length > 16) cleanKey.take(16) else cleanKey
-                    try {
-                        fetchConfigs("$PROXYMA_SUB_BASE_URL$subId")
-                    } catch (_: Exception) {
-                        fetchConfigs("$PROXYMA_SUB_BASE_URL$cleanKey")
+                            fetchSubscription("$PROXYMA_SUB_BASE_URL$subId", deviceHwid, deviceModel, osVersion)
+                        } catch (_: Exception) {
+                            fetchSubscription("$PROXYMA_SUB_BASE_URL$cleanKey", deviceHwid, deviceModel, osVersion)
+                        }
                     }
                 }
 
-                val cleanConfigs = decodedText.lines()
+                val cleanConfigs = decodedText.lineSequence()
                     .map { it.trim() }
                     .filter {
                         it.startsWith("vless://") ||
@@ -210,7 +245,7 @@ fun MainScreen(
                 if (cleanConfigs.isNotEmpty()) {
                     val (count, _) = AngConfigManager.importBatchConfig(
                         server = cleanConfigs,
-                        subid = uiState.selectedGroupId,
+                        subid = targetGroupId,
                         append = false
                     )
                     withContext(Dispatchers.Main) {
@@ -221,7 +256,7 @@ fun MainScreen(
                             android.widget.Toast.LENGTH_SHORT
                         ).show()
                     }
-                    } else {
+                } else {
                     withContext(Dispatchers.Main) {
                         android.widget.Toast.makeText(
                             context,
@@ -230,16 +265,19 @@ fun MainScreen(
                         ).show()
                     }
                 }
-            } catch (e: Exception) {
-                val msg = if (e is java.io.FileNotFoundException) {
-                    "Ключ не найден или срок его действия истек"
-                } else {
-                    "Ошибка сети: ${e.message}"
-                }
+            } catch (e: FileNotFoundException) {
                 withContext(Dispatchers.Main) {
                     android.widget.Toast.makeText(
                         context,
-                        msg,
+                        "Ключ не найден или срок его действия истек",
+                        android.widget.Toast.LENGTH_LONG
+                    ).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    android.widget.Toast.makeText(
+                        context,
+                        "Ошибка сети: ${e.message}",
                         android.widget.Toast.LENGTH_LONG
                     ).show()
                 }
@@ -256,8 +294,8 @@ fun MainScreen(
             activateKey(incomingKey)
         }
     }
-    
-  val qrScannerLauncher = rememberLauncherForActivityResult(
+
+    val qrScannerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -289,7 +327,7 @@ fun MainScreen(
         VpnDisclosureDialog(
             onAccept = {
                 MmkvManager.encodeSettings("vpn_disclosure_accepted", true)
-                hasAcceptedDisclosure.value = true
+                hasAcceptedDisclosure = true
                 showVpnDisclosure = false
                 onAction(MainAction.ToggleService)
             },
@@ -382,7 +420,8 @@ fun MainScreen(
                 }
 
                 Spacer(modifier = Modifier.height(16.dp))
-                                if (servers.isEmpty() && !isLoading) {
+
+                if (servers.isEmpty() && !isLoading) {
                     EmptyActivationCard(
                         onScanQr = { launchQrScanner() },
                         onActivate = { uuid -> activateKey(uuid) }
@@ -420,7 +459,7 @@ fun MainScreen(
                         isLoading = isLoading,
                         statusText = statusText,
                         onToggle = {
-                            if (!isRunning && !hasAcceptedDisclosure.value) {
+                            if (!isRunning && !hasAcceptedDisclosure) {
                                 showVpnDisclosure = true
                             } else {
                                 onAction(MainAction.ToggleService)
@@ -522,7 +561,10 @@ private fun SubscriptionStatusCard(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-                
+            }
+
+            // Кнопки — сосед Column в общем Row (раньше Row был вложен в Column
+            // и не хватало закрывающей скобки).
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (isLoading) {
                     CircularProgressIndicator(
@@ -552,6 +594,7 @@ private fun SubscriptionStatusCard(
         }
     }
 }
+
 @Composable
 private fun EmptyActivationCard(
     onScanQr: () -> Unit,
@@ -559,7 +602,7 @@ private fun EmptyActivationCard(
 ) {
     var inputKey by remember { mutableStateOf("") }
     val clipboard = LocalClipboardManager.current
-    val context = androidx.compose.ui.platform.LocalContext.current
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -688,6 +731,7 @@ private fun EmptyActivationCard(
         }
     }
 }
+
 @Composable
 private fun PowerConnectButton(
     isRunning: Boolean,
@@ -837,6 +881,7 @@ private fun ServerLocationCard(
         }
     }
 }
+
 @Composable
 private fun KeyInputDialog(
     isLoading: Boolean,
@@ -970,7 +1015,7 @@ private fun VpnDisclosureDialog(
             ) {
                 Text("Согласен", color = Color.White, fontWeight = FontWeight.Bold)
             }
-        },
+             },
         dismissButton = {
             TextButton(onClick = onDecline) {
                 Text("Отказаться", color = TextSecondary)
