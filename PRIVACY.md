@@ -20,4 +20,4 @@ Proxyma Connect использует системный интерфейс **And
 
 ## 5. Контакты и поддержка
 Если у вас есть вопросы по работе приложения или обработке данных, вы можете связаться с нами через официальную службу поддержки в Telegram: [@ProxymaVPN_support_bot]
-(https://t.me/ProxymaVPN_support_bot).
+Telegram: https://t.me/ProxymaVPN_support_bot.
