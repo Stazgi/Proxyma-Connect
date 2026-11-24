@@ -136,6 +136,37 @@ fun MainScreen(
                     connection.inputStream
                 }
                 val rawBody = stream.bufferedReader().use { it.readText() }.trim()
+                val userInfoHeader = connection.getHeaderField("Subscription-Userinfo").orEmpty()
+                if (userInfoHeader.isNotEmpty()) {
+                    val infoMap = userInfoHeader.split(";")
+                        .mapNotNull { part ->
+                            val kv = part.trim().split("=")
+                            if (kv.size == 2) kv[0].lowercase() to (kv[1].toLongOrNull() ?: 0L) else null
+                        }.toMap()
+                    val usedBytes = (infoMap["upload"] ?: 0L) + (infoMap["download"] ?: 0L)
+                    val totalBytes = infoMap["total"] ?: 0L
+                    val expireSec = mapOf("expire" to (infoMap["expire"] ?: 0L))["expire"] ?: 0L
+
+                    val gbDiv = 1024.0 * 1024.0 * 1024.0
+                    val trafficText = if (totalBytes > 0L) {
+                        val leftGb = ((totalBytes - usedBytes).coerceAtLeast(0L)) / gbDiv
+                        val totalGb = totalBytes / gbDiv
+                        String.format(java.util.Locale.US, "Остаток: %.2f из %.2f ГБ", leftGb, totalGb)
+                    } else {
+                        val usedGb = usedBytes / gbDiv
+                        String.format(java.util.Locale.US, "Использовано: %.2f ГБ • Безлимит", usedGb)
+                    }
+
+                    val dateText = if (expireSec > 0L) {
+                        val sdf = java.text.SimpleDateFormat("dd.MM.yyyy", java.util.Locale.getDefault())
+                        " • До ${sdf.format(java.util.Date(expireSec * 1000L))}"
+                    } else {
+                        " • Сброс раз в 30 дн."
+                    }
+                    MmkvManager.encodeSettings("proxyma_sub_info", "$trafficText$dateText")
+                } else {
+                    MmkvManager.encodeSettings("proxyma_sub_info", "")
+                }
                 connection.disconnect()
                 return if (rawBody.contains("://")) {
                     rawBody
@@ -190,7 +221,7 @@ fun MainScreen(
                             android.widget.Toast.LENGTH_SHORT
                         ).show()
                     }
-                } else {
+                    } else {
                     withContext(Dispatchers.Main) {
                         android.widget.Toast.makeText(
                             context,
@@ -200,17 +231,22 @@ fun MainScreen(
                     }
                 }
             } catch (e: Exception) {
+                val msg = if (e is java.io.FileNotFoundException) {
+                    "Ключ не найден или срок его действия истек"
+                } else {
+                    "Ошибка сети: ${e.message}"
+                }
                 withContext(Dispatchers.Main) {
                     android.widget.Toast.makeText(
                         context,
-                        "Ошибка сети: ${e.message}",
+                        msg,
                         android.widget.Toast.LENGTH_LONG
                     ).show()
                 }
             }
         }
     }
-    
+
     val activity = context as? MainActivity
     val incomingKey = activity?.incomingAuthKey?.value
     LaunchedEffect(incomingKey) {
@@ -476,15 +512,17 @@ private fun SubscriptionStatusCard(
                     fontWeight = FontWeight.SemiBold
                 )
                 Spacer(modifier = Modifier.height(4.dp))
+                val subInfo = MmkvManager.decodeSettingsString("proxyma_sub_info")
+                    .orEmpty()
+                    .ifBlank { "Ключ активен • Нажмите ↻ для обновления" }
                 Text(
-                    text = "Ключ активен • Нажмите ↻ для обновления",
-                    color = TextSecondary,
+                    text = subInfo,
+                    color = AccentCyan,
                     fontSize = 12.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
-            }
-
+                
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (isLoading) {
                     CircularProgressIndicator(
