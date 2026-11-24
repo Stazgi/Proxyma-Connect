@@ -4,36 +4,29 @@ import android.app.Activity
 import android.os.Bundle
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.v2ray.ang.AppConfig.BUILTIN_OUTBOUND_TAGS
 import com.v2ray.ang.AppConfig.TAG_PROXY
@@ -44,20 +37,27 @@ import com.v2ray.ang.extension.toastSuccess
 import com.v2ray.ang.handler.SettingsManager
 import com.v2ray.ang.ui.apppicker.AppPickerActivity
 import com.v2ray.ang.ui.base.BaseComponentActivity
-import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.DeleteConfirmDialog
-import com.v2ray.ang.ui.compose.FormDropdownField
-import com.v2ray.ang.ui.compose.FormTextField
 import com.v2ray.ang.ui.compose.NavigationBarsSpacer
 import com.v2ray.ang.ui.compose.ServerSelectListDialog
-import com.v2ray.ang.ui.compose.SettingsSwitchItem
 import com.v2ray.ang.ui.compose.verticalScrollbar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
-private val ROUTING_NETWORK_OPTIONS = listOf("tcp", "udp", "tcp,udp")
+private val BgDarkTop = Color(0xFF0B0F19)
+private val BgDarkBottom = Color(0xFF131B2E)
+private val CardSurface = Color(0xFF1A233A)
+private val CardBorder = Color(0xFF2B395C)
+private val AccentCyan = Color(0xFF00E5FF)
+private val AccentIndigo = Color(0xFF6366F1)
+private val ConnectedGreen = Color(0xFF10B981)
+private val BlockRed = Color(0xFFEF4444)
+private val TextPrimary = Color(0xFFF8FAFC)
+private val TextSecondary = Color(0xFF94A3B8)
+
+private val ROUTING_NETWORK_OPTIONS = listOf("tcp,udp", "tcp", "udp")
 
 class RoutingEditActivity : BaseComponentActivity() {
     private val position by lazy { intent.getIntExtra("position", -1) }
@@ -109,7 +109,6 @@ class RoutingEditActivity : BaseComponentActivity() {
         return true
     }
 }
-
 @Composable
 fun RoutingEditScreen(
     position: Int,
@@ -123,6 +122,16 @@ fun RoutingEditScreen(
     val context = LocalContext.current
     val processSelectTitle = stringResource(R.string.routing_settings_process_select)
     val scrollState = rememberScrollState()
+
+    val view = LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window
+            if (window != null) {
+                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+            }
+        }
+    }
 
     var remarks by rememberSaveable { mutableStateOf(initial?.remarks ?: "") }
     var isRemarksError by rememberSaveable { mutableStateOf(false) }
@@ -181,154 +190,303 @@ fun RoutingEditScreen(
         return rulesetItem
     }
 
-    Scaffold(
-        contentWindowInsets = WindowInsets(0),
-        topBar = {
-            AppTopBar(
-                title = stringResource(R.string.routing_settings_rule_title),
-                onBackClick = onBackClick,
-                actions = {
-                    if (position >= 0) {
-                        IconButton(onClick = { showDeleteConfirm = true }) {
-                            Icon(
-                                painterResource(R.drawable.ic_delete_24dp),
-                                contentDescription = stringResource(R.string.acc_delete)
-                            )
-                        }
-                    }
-                    IconButton(onClick = {
-                        val remarksErr = remarks.isBlank()
-                        isRemarksError = remarksErr
-
-                        val hasError = remarksErr
-                        if (!hasError) {
-                            onSave(buildRuleset())
-                        }
-                    }) {
-                        Icon(
-                            painterResource(R.drawable.ic_fab_check),
-                            contentDescription = stringResource(R.string.acc_save)
-                        )
-                    }
-                }
-            )
+    fun triggerSave() {
+        val remarksErr = remarks.isBlank()
+        isRemarksError = remarksErr
+        if (!remarksErr) {
+            onSave(buildRuleset())
         }
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .consumeWindowInsets(innerPadding)
-                .imePadding()
-                .verticalScroll(scrollState)
-                .verticalScrollbar(scrollState)
-                .padding(vertical = 8.dp)
-        ) {
-            FormTextField(
-                label = stringResource(R.string.sub_setting_remarks),
-                value = remarks,
-                onValueChange = { remarks = it },
-                isError = isRemarksError
-            )
-            SettingsSwitchItem(
-                title = stringResource(R.string.routing_settings_locked),
-                checked = locked,
-                onCheckedChange = { locked = it }
-            )
-            Text(
-                text = stringResource(R.string.routing_settings_tips),
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            FormTextField(
-                label = stringResource(R.string.routing_settings_domain),
-                placeholder = stringResource(R.string.routing_settings_comma_tip),
-                value = domain,
-                onValueChange = { domain = it }
-            )
-            FormTextField(
-                label = stringResource(R.string.routing_settings_ip),
-                placeholder = stringResource(R.string.routing_settings_comma_tip),
-                value = ip,
-                onValueChange = { ip = it }
-            )
-            FormTextField(
-                label = stringResource(R.string.routing_settings_process),
-                placeholder = stringResource(R.string.routing_settings_comma_tip),
-                value = processText,
-                onValueChange = { processText = it },
-                enabled = canUseProcess
-            )
-            if (canUseProcess) {
-                TextButton(
-                    onClick = {
-                        val current = processText
-                            .split(",")
-                            .map { it.trim() }
-                            .filter { it.isNotEmpty() }
-                            .distinct()
-                        processPickerLauncher.launch(
-                            AppPickerActivity.createIntent(
-                                context = context,
-                                selectedPackages = current,
-                                title = processSelectTitle
-                            )
-                        )
-                    },
-                    modifier = Modifier.padding(start = 16.dp)
-                ) {
-                    Icon(
-                        painterResource(R.drawable.ic_per_apps_24dp),
-                        contentDescription = null
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(processSelectTitle)
-                }
-            }
-            FormTextField(
-                label = stringResource(R.string.routing_settings_port),
-                value = port,
-                onValueChange = { port = it }
-            )
-            FormTextField(
-                label = stringResource(R.string.routing_settings_protocol),
-                placeholder = stringResource(R.string.routing_settings_protocol_tip),
-                value = protocol,
-                onValueChange = { protocol = it }
-            )
-            FormDropdownField(
-                label = stringResource(R.string.routing_settings_network),
-                value = selectedNetwork,
-                options = ROUTING_NETWORK_OPTIONS,
-                onValueChange = { network = it }
-            )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(BgDarkTop, BgDarkBottom)))
+            .statusBarsPadding()
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Верхняя панель
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(end = 16.dp),
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                FormDropdownField(
-                    label = stringResource(R.string.routing_settings_outbound_tag),
-                    placeholder = stringResource(
-                        R.string.routing_settings_outbound_tag_hint,
-                        stringResource(R.string.server_lab_remarks)
-                    ),
-                    value = outboundTag,
-                    options = BUILTIN_OUTBOUND_TAGS.toList(),
-                    onValueChange = { outboundTag = it },
-                    modifier = Modifier.weight(1f)
-                )
-                IconButton(onClick = { showOutboundDialog = true }) {
-                    Icon(
-                        painterResource(R.drawable.ic_search_24dp),
-                        contentDescription = stringResource(R.string.title_file_chooser)
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = onBackClick) {
+                        Text(
+                            text = "←",
+                            color = TextPrimary,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                    Column {
+                        Text(
+                            text = if (position >= 0) "Редактирование правила" else "Новое правило",
+                            color = TextPrimary,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "Настройка маршрутизации трафика",
+                            color = AccentCyan,
+                            fontSize = 11.sp
+                        )
+                    }
+                }
+
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (position >= 0) {
+                        IconButton(onClick = { showDeleteConfirm = true }) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_delete_24dp),
+                                contentDescription = "Удалить",
+                                tint = BlockRed
+                            )
+                        }
+                    }
+                    IconButton(onClick = { triggerSave() }) {
+                        Text(
+                            text = "✓",
+                            color = ConnectedGreen,
+                            fontSize = 24.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
-            Spacer(modifier = Modifier.height(36.dp))
-            NavigationBarsSpacer()
+                        Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .imePadding()
+                    .verticalScroll(scrollState)
+                    .verticalScrollbar(scrollState)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                // Карточка основных параметров
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    color = CardSurface,
+                    border = BorderStroke(1.dp, CardBorder)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        ProxymaTextField(
+                            label = "Название правила *",
+                            placeholder = "Например: Российские банки",
+                            value = remarks,
+                            onValueChange = {
+                                remarks = it
+                                if (it.isNotBlank()) isRemarksError = false
+                            },
+                            isError = isRemarksError
+                        )
+
+                        // Выбор направления трафика (Через VPN / Без VPN / Блокировать)
+                        Text(
+                            text = "Куда направлять трафик:",
+                            color = TextSecondary,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium
+                        )
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            OutboundChip(
+                                title = "Через VPN",
+                                selected = outboundTag.equals("proxy", ignoreCase = true),
+                                color = AccentCyan,
+                                modifier = Modifier.weight(1f),
+                                onClick = { outboundTag = "proxy" }
+                            )
+                            OutboundChip(
+                                title = "Без VPN",
+                                selected = outboundTag.equals("direct", ignoreCase = true),
+                                color = ConnectedGreen,
+                                modifier = Modifier.weight(1f),
+                                onClick = { outboundTag = "direct" }
+                            )
+                            OutboundChip(
+                                title = "Блокировать",
+                                selected = outboundTag.equals("block", ignoreCase = true),
+                                color = BlockRed,
+                                modifier = Modifier.weight(1f),
+                                onClick = { outboundTag = "block" }
+                            )
+                        }
+
+                        if (outboundSuggestions.isNotEmpty()) {
+                            OutlinedButton(
+                                onClick = { showOutboundDialog = true },
+                                modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                border = BorderStroke(1.dp, CardBorder)
+                            ) {
+                                Text(
+                                    text = "Тег выхода: $outboundTag (выбрать сервер)",
+                                    color = TextSecondary,
+                                    fontSize = 12.sp
+                                )
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .clickable { locked = !locked }
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Закрепить правило",
+                                    color = TextPrimary,
+                                    fontSize = 14.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Text(
+                                    text = "Сохранится при сбросе или импорте набора правил",
+                                    color = TextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Switch(
+                                checked = locked,
+                                onCheckedChange = { locked = it },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = AccentIndigo,
+                                    uncheckedThumbColor = TextSecondary,
+                                    uncheckedTrackColor = BgDarkTop
+                                )
+                            )
+                        }
+                    }
+                }
+                                // Карточка условий срабатывания
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(18.dp),
+                    color = CardSurface,
+                    border = BorderStroke(1.dp, CardBorder)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            text = "Условия срабатывания (через запятую):",
+                            color = AccentCyan,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+
+                        ProxymaTextField(
+                            label = "Домены (domain)",
+                            placeholder = "geosite:ru, sberbank.ru",
+                            value = domain,
+                            onValueChange = { domain = it }
+                        )
+
+                        ProxymaTextField(
+                            label = "IP-адреса (ip)",
+                            placeholder = "geoip:ru, 192.168.0.0/16",
+                            value = ip,
+                            onValueChange = { ip = it }
+                        )
+
+                        ProxymaTextField(
+                            label = "Порты (port)",
+                            placeholder = "443 или 80,443",
+                            value = port,
+                            onValueChange = { port = it }
+                        )
+
+                        ProxymaTextField(
+                            label = "Протокол (protocol)",
+                            placeholder = "http, tls, bittorrent",
+                            value = protocol,
+                            onValueChange = { protocol = it }
+                        )
+
+                        Text(
+                            text = "Тип сети:",
+                            color = TextSecondary,
+                            fontSize = 12.sp
+                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            ROUTING_NETWORK_OPTIONS.forEach { netOption ->
+                                OutboundChip(
+                                    title = netOption.uppercase(),
+                                    selected = selectedNetwork.equals(netOption, ignoreCase = true),
+                                    color = AccentIndigo,
+                                    modifier = Modifier.weight(1f),
+                                    onClick = { network = netOption }
+                                )
+                            }
+                        }
+
+                        if (canUseProcess) {
+                            ProxymaTextField(
+                                label = "Приложения (process)",
+                                placeholder = "ru.sberbankmobile",
+                                value = processText,
+                                onValueChange = { processText = it }
+                            )
+                            TextButton(
+                                onClick = {
+                                    val current = processText
+                                        .split(",")
+                                        .map { it.trim() }
+                                        .filter { it.isNotEmpty() }
+                                        .distinct()
+                                    processPickerLauncher.launch(
+                                        AppPickerActivity.createIntent(
+                                            context = context,
+                                            selectedPackages = current,
+                                            title = processSelectTitle
+                                        )
+                                    )
+                                }
+                            ) {
+                                Text("📱 Выбрать из установленных приложений", color = AccentCyan, fontSize = 13.sp)
+                            }
+                        }
+                    }
+                }
+
+                Button(
+                    onClick = { triggerSave() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = AccentIndigo)
+                ) {
+                    Text(
+                        text = "Сохранить правило",
+                        color = Color.White,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+                NavigationBarsSpacer()
+            }
         }
 
         if (showDeleteConfirm) {
@@ -352,4 +510,66 @@ fun RoutingEditScreen(
             )
         }
     }
+}
+
+@Composable
+private fun OutboundChip(
+    title: String,
+    selected: Boolean,
+    color: Color,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = modifier
+            .clip(RoundedCornerShape(12.dp))
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        color = if (selected) color.copy(alpha = 0.2f) else BgDarkTop.copy(alpha = 0.6f),
+        border = BorderStroke(
+            width = if (selected) 1.5.dp else 1.dp,
+            color = if (selected) color else CardBorder
+        )
+    ) {
+        Box(
+            modifier = Modifier.padding(vertical = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = title,
+                color = if (selected) color else TextSecondary,
+                fontSize = 12.sp,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProxymaTextField(
+    label: String,
+    placeholder: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    isError: Boolean = false
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text(label, fontSize = 12.sp) },
+        placeholder = { Text(placeholder, color = TextSecondary.copy(alpha = 0.6f), fontSize = 12.sp) },
+        isError = isError,
+        singleLine = true,
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = TextPrimary,
+            unfocusedTextColor = TextPrimary,
+            focusedBorderColor = AccentCyan,
+            unfocusedBorderColor = CardBorder,
+            focusedLabelColor = AccentCyan,
+            unfocusedLabelColor = TextSecondary,
+            cursorColor = AccentCyan
+        )
+    )
 }
