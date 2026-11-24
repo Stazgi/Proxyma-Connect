@@ -79,6 +79,16 @@ fun MainScreen(
     val selectedGuid = uiState.selectedGuid
     val statusText = mainViewModel.formatStatus(uiState.status)
 
+    val view = androidx.compose.ui.platform.LocalView.current
+    if (!view.isInEditMode) {
+        SideEffect {
+            val window = (view.context as? Activity)?.window
+            if (window != null) {
+                androidx.core.view.WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+            }
+        }
+    }
+
     LaunchedEffect(servers, selectedGuid) {
         if (servers.isNotEmpty() && (selectedGuid.isNullOrEmpty() || servers.none { it.guid == selectedGuid })) {
             onAction(MainAction.SelectServer(servers.first().guid))
