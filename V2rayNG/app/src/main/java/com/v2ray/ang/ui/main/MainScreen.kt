@@ -45,7 +45,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private val PROXYMA_SUB_BASE_URL = com.v2ray.ang.BuildConfig.SUB_BASE_URL
-private const val TELEGRAM_BOT_URL = "https://t.me/ProxymaVPN_robot"
+private const val TELEGRAM_BOT_URL = "https://t.me/ProxymaVPN_robot?start=app_login"
 private const val PRIVACY_POLICY_URL = "https://github.com/Stazgi/Proxyma-Connect/blob/master/PRIVACY.md"
 
 private val BgDarkTop = Color(0xFF0B0F19)
@@ -210,8 +210,18 @@ fun MainScreen(
             }
         }
     }
-
-    val qrScannerLauncher = rememberLauncherForActivityResult(
+    
+    val activity = context as? MainActivity
+    val incomingKey = activity?.incomingAuthKey?.value
+    LaunchedEffect(incomingKey) {
+        if (!incomingKey.isNullOrEmpty()) {
+            activity.incomingAuthKey.value = null
+            showKeyDialog = false
+            activateKey(incomingKey)
+        }
+    }
+    
+  val qrScannerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
     ) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
