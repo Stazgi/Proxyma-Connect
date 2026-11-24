@@ -2,20 +2,54 @@ package com.v2ray.ang.ui.settings
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.Color as AndroidColor
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import androidx.activity.SystemBarStyle
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.HelpOutline
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.VpnKey
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,9 +57,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,7 +84,6 @@ import com.v2ray.ang.handler.SettingsChangeManager
 import com.v2ray.ang.root.RootManager
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.AppTopBar
-import com.v2ray.ang.ui.compose.CollapsiblePreferenceGroupHeader
 import com.v2ray.ang.ui.compose.NavigationBarsSpacer
 import com.v2ray.ang.ui.compose.SettingsEditItem
 import com.v2ray.ang.ui.compose.SettingsListItem
@@ -55,11 +95,42 @@ import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.launch
 
+private val DarkGreyBackground = Color(0xFF121316)
+private val DarkGreySurface = Color(0xFF1B1D22)
+private val DarkGreySurfaceElevated = Color(0xFF252830)
+private val DarkGreyBorder = Color(0xFF2F333D)
+private val AccentBlue = Color(0xFF5C9DFF)
+private val TextPrimary = Color(0xFFECEEF2)
+private val TextSecondary = Color(0xFF9AA0AE)
+
+private val DarkGreyColorScheme = darkColorScheme(
+    primary = AccentBlue,
+    onPrimary = Color(0xFF0A192F),
+    primaryContainer = Color(0xFF1F3557),
+    onPrimaryContainer = Color(0xFFD6E4FF),
+    secondary = Color(0xFF8E99B0),
+    onSecondary = Color(0xFF161920),
+    secondaryContainer = DarkGreySurfaceElevated,
+    onSecondaryContainer = TextPrimary,
+    background = DarkGreyBackground,
+    onBackground = TextPrimary,
+    surface = DarkGreySurface,
+    onSurface = TextPrimary,
+    surfaceVariant = DarkGreySurfaceElevated,
+    onSurfaceVariant = TextSecondary,
+    outline = DarkGreyBorder,
+    outlineVariant = Color(0xFF262932)
+)
+
 class SettingsActivity : BaseComponentActivity() {
 
     private val viewModel: SettingsViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(AndroidColor.TRANSPARENT)
+        )
         super.onCreate(savedInstanceState)
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.RESUMED) {
@@ -76,7 +147,7 @@ class SettingsActivity : BaseComponentActivity() {
         } catch (error: SecurityException) {
             reportSystemVpnSettingsFailure(error)
         }
-    }
+            }
 
     private fun reportSystemVpnSettingsFailure(error: RuntimeException) {
         LogUtil.e(AppConfig.TAG, "Cannot open system VPN settings", error)
@@ -85,12 +156,14 @@ class SettingsActivity : BaseComponentActivity() {
 
     @Composable
     override fun ScreenContent() {
-        SettingsScreen(
-            viewModel = viewModel,
-            onBackClick = { finish() },
-            onModeHelpClicked = { Utils.openUri(this, AppConfig.APP_WIKI_MODE) },
-            onSystemVpnSettingsClicked = ::openSystemVpnSettings
-        )
+        MaterialTheme(colorScheme = DarkGreyColorScheme) {
+            SettingsScreen(
+                viewModel = viewModel,
+                onBackClick = { finish() },
+                onModeHelpClicked = { Utils.openUri(this, AppConfig.APP_WIKI_MODE) },
+                onSystemVpnSettingsClicked = ::openSystemVpnSettings
+            )
+        }
     }
 }
 
@@ -105,6 +178,7 @@ fun SettingsScreen(
     val scrollState = rememberScrollState()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val systemVpnSettingsAvailable by viewModel.systemVpnSettingsAvailable.collectAsStateWithLifecycle()
+
     var uiSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var vpnSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var coreSettingsExpanded by rememberSaveable { mutableStateOf(true) }
@@ -132,6 +206,7 @@ fun SettingsScreen(
     var fragmentLength by rememberMmkvString(AppConfig.PREF_FRAGMENT_LENGTH, "50-100")
     var fragmentInterval by rememberMmkvString(AppConfig.PREF_FRAGMENT_INTERVAL, "10-20")
     var fragmentMaxSplit by rememberMmkvString(AppConfig.PREF_FRAGMENT_MAXSPLIT, "10")
+
     var observatoryLeastPingInterval by rememberMmkvString(AppConfig.PREF_OBSERVATORY_LEAST_PING_INTERVAL, AppConfig.OBSERVATORY_LEAST_PING_INTERVAL)
     var observatoryLeastLoadInterval by rememberMmkvString(AppConfig.PREF_OBSERVATORY_LEAST_LOAD_INTERVAL, AppConfig.OBSERVATORY_LEAST_LOAD_INTERVAL)
     var observatoryLeastLoadMethod by rememberMmkvString(AppConfig.PREF_OBSERVATORY_LEAST_LOAD_METHOD, AppConfig.OBSERVATORY_LEAST_LOAD_METHOD)
@@ -145,8 +220,7 @@ fun SettingsScreen(
     var hevTunLogLevel by rememberMmkvString(AppConfig.PREF_HEV_TUNNEL_LOGLEVEL, AppConfig.DEFAULT_HEV_TUNNEL_LOGLEVEL)
     var hevTunRwTimeout by rememberMmkvString(AppConfig.PREF_HEV_TUNNEL_RW_TIMEOUT, "")
     var useHevTun by rememberMmkvBool(AppConfig.PREF_USE_HEV_TUNNEL, true)
-
-    var enableLocalProxy by rememberMmkvBool(AppConfig.PREF_ENABLE_LOCAL_PROXY, true)
+        var enableLocalProxy by rememberMmkvBool(AppConfig.PREF_ENABLE_LOCAL_PROXY, true)
     var socksPort by rememberMmkvString(AppConfig.PREF_SOCKS_PORT, "")
     var dynamicSocksPort by rememberMmkvBool(AppConfig.PREF_DYNAMIC_SOCKS_PORT, false)
     var socksUsername by rememberMmkvString(AppConfig.PREF_SOCKS_USERNAME, "")
@@ -219,7 +293,8 @@ fun SettingsScreen(
     val modeValues = stringArrayResource(R.array.mode_value).toList()
 
     Scaffold(
-        contentWindowInsets = WindowInsets(0),
+        containerColor = DarkGreyBackground,
+                contentWindowInsets = WindowInsets(0),
         topBar = {
             AppTopBar(
                 title = stringResource(R.string.title_settings),
@@ -231,16 +306,28 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(DarkGreyBackground)
                 .padding(innerPadding)
                 .verticalScrollbar(scrollState)
                 .verticalScroll(scrollState)
+                .padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            CollapsiblePreferenceGroupHeader(
+            QuickModeAndActionsBar(
+                modeEntries = modeEntries,
+                modeValues = modeValues,
+                selectedMode = mode,
+                onModeSelected = { mode = it },
+                systemVpnSettingsAvailable = systemVpnSettingsAvailable,
+                onSystemVpnSettingsClicked = onSystemVpnSettingsClicked,
+                onModeHelpClicked = onModeHelpClicked
+            )
+
+            SettingsSectionCard(
                 title = stringResource(R.string.title_ui_settings),
                 expanded = uiSettingsExpanded,
                 onExpandedChange = { uiSettingsExpanded = it }
-            )
-            if (uiSettingsExpanded) {
+            ) {
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_speed_enabled),
                     summary = stringResource(R.string.summary_pref_speed_enabled),
@@ -281,7 +368,7 @@ fun SettingsScreen(
                         ThemeManager.setDynamicColorEnabled(it)
                     }
                 )
-                SettingsListItem(
+                                SettingsListItem(
                     title = stringResource(R.string.title_language),
                     entries = languageEntries,
                     values = languageValues,
@@ -303,12 +390,11 @@ fun SettingsScreen(
                 )
             }
 
-            CollapsiblePreferenceGroupHeader(
+            SettingsSectionCard(
                 title = stringResource(R.string.title_vpn_settings),
                 expanded = vpnSettingsExpanded,
                 onExpandedChange = { vpnSettingsExpanded = it }
-            )
-            if (vpnSettingsExpanded) {
+            ) {
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_ipv6_enabled),
                     summary = stringResource(R.string.summary_pref_ipv6_enabled),
@@ -356,7 +442,7 @@ fun SettingsScreen(
                     enabled = isVpn,
                     onSelected = { vpnBypassLan = it }
                 )
-                SettingsListItem(
+                                SettingsListItem(
                     title = stringResource(R.string.title_pref_vpn_interface_address),
                     entries = interfaceAddrEntries,
                     values = interfaceAddrValues,
@@ -400,12 +486,11 @@ fun SettingsScreen(
                 )
             }
 
-            CollapsiblePreferenceGroupHeader(
+            SettingsSectionCard(
                 title = stringResource(R.string.title_core_settings),
                 expanded = coreSettingsExpanded,
                 onExpandedChange = { coreSettingsExpanded = it }
-            )
-            if (coreSettingsExpanded) {
+            ) {
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_sniffing_enabled),
                     summary = stringResource(R.string.summary_pref_sniffing_enabled),
@@ -432,7 +517,7 @@ fun SettingsScreen(
                         }
                     }
                 )
-                SettingsSwitchItem(
+                                SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_proxy_sharing_enabled),
                     summary = stringResource(R.string.summary_pref_proxy_sharing_enabled),
                     checked = proxySharing,
@@ -504,12 +589,11 @@ fun SettingsScreen(
                 )
             }
 
-            CollapsiblePreferenceGroupHeader(
+            SettingsSectionCard(
                 title = stringResource(R.string.title_mux_settings),
-                expanded = muxSettingsExpanded,
+                                expanded = muxSettingsExpanded,
                 onExpandedChange = { muxSettingsExpanded = it }
-            )
-            if (muxSettingsExpanded) {
+            ) {
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_mux_enabled),
                     summary = stringResource(R.string.summary_pref_mux_enabled),
@@ -540,12 +624,11 @@ fun SettingsScreen(
                 )
             }
 
-            CollapsiblePreferenceGroupHeader(
+            SettingsSectionCard(
                 title = stringResource(R.string.title_fragment_settings),
                 expanded = fragmentSettingsExpanded,
                 onExpandedChange = { fragmentSettingsExpanded = it }
-            )
-            if (fragmentSettingsExpanded) {
+            ) {
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_fragment_enabled),
                     checked = fragment,
@@ -580,12 +663,11 @@ fun SettingsScreen(
                 )
             }
 
-            CollapsiblePreferenceGroupHeader(
+            SettingsSectionCard(
                 title = stringResource(R.string.title_observatory_settings),
                 expanded = observatorySettingsExpanded,
-                onExpandedChange = { observatorySettingsExpanded = it }
-            )
-            if (observatorySettingsExpanded) {
+                                onExpandedChange = { observatorySettingsExpanded = it }
+            ) {
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_observatory_least_ping_interval),
                     value = observatoryLeastPingInterval,
@@ -632,12 +714,11 @@ fun SettingsScreen(
                 )
             }
 
-            CollapsiblePreferenceGroupHeader(
+            SettingsSectionCard(
                 title = stringResource(R.string.title_advanced),
                 expanded = advancedSettingsExpanded,
                 onExpandedChange = { advancedSettingsExpanded = it }
-            )
-            if (advancedSettingsExpanded) {
+            ) {
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_is_booted),
                     summary = stringResource(R.string.summary_pref_is_booted),
@@ -645,9 +726,10 @@ fun SettingsScreen(
                     onCheckedChange = { isBooted = it }
                 )
                 if (systemVpnSettingsAvailable) {
-                    SettingsMenuItem(
+                    ActionPillButton(
                         title = stringResource(R.string.title_system_vpn_settings),
                         subtitle = stringResource(R.string.summary_system_vpn_settings),
+                        icon = Icons.Rounded.VpnKey,
                         onClick = onSystemVpnSettingsClicked
                     )
                 }
@@ -669,12 +751,11 @@ fun SettingsScreen(
                 )
             }
 
-            CollapsiblePreferenceGroupHeader(
+            SettingsSectionCard(
                 title = stringResource(R.string.title_mode_settings),
                 expanded = modeSettingsExpanded,
                 onExpandedChange = { modeSettingsExpanded = it }
-            )
-            if (modeSettingsExpanded) {
+            ) {
                 SettingsListItem(
                     title = stringResource(R.string.title_mode),
                     entries = modeEntries,
@@ -682,8 +763,9 @@ fun SettingsScreen(
                     selectedValue = mode,
                     onSelected = { mode = it }
                 )
-                SettingsMenuItem(
+                ActionPillButton(
                     title = stringResource(R.string.title_mode_help),
+                    icon = Icons.AutoMirrored.Rounded.HelpOutline,
                     onClick = onModeHelpClicked
                 )
                 SettingsSwitchItem(
@@ -716,8 +798,262 @@ fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
             NavigationBarsSpacer()
+        }
+    }
+}
+
+@Composable
+private fun QuickModeAndActionsBar(
+    modeEntries: List<String>,
+    modeValues: List<String>,
+    selectedMode: String,
+    onModeSelected: (String) -> Unit,
+    systemVpnSettingsAvailable: Boolean,
+    onSystemVpnSettingsClicked: () -> Unit,
+    onModeHelpClicked: () -> Unit
+) {
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = DarkGreySurface,
+        border = BorderStroke(1.dp, DarkGreyBorder),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                text = stringResource(R.string.title_mode),
+                style = MaterialTheme.typography.labelMedium,
+                color = TextSecondary
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                modeValues.forEachIndexed { index, value ->
+                    val label = modeEntries.getOrElse(index) { value }
+                    val isSelected = value == selectedMode
+
+                    FilledTonalButton(
+                        onClick = { onModeSelected(value) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(46.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = if (isSelected) AccentBlue else DarkGreySurfaceElevated,
+                            contentColor = if (isSelected) Color(0xFF0B1424) else TextPrimary
+                        )
+                    ) {
+                        if (isSelected) {
+                            Icon(
+                                imageVector = Icons.Rounded.Shield,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                        }
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+                        Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                if (systemVpnSettingsAvailable) {
+                    FilledTonalButton(
+                        onClick = onSystemVpnSettingsClicked,
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(
+                            containerColor = DarkGreySurfaceElevated,
+                            contentColor = TextPrimary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.VpnKey,
+                            contentDescription = null,
+                            tint = AccentBlue,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.title_system_vpn_settings),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                FilledTonalButton(
+                    onClick = onModeHelpClicked,
+                    modifier = Modifier
+                        .let { if (systemVpnSettingsAvailable) it.width(48.dp) else it.fillMaxWidth() }
+                        .height(44.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = DarkGreySurfaceElevated,
+                        contentColor = TextPrimary
+                    )
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.HelpOutline,
+                        contentDescription = stringResource(R.string.title_mode_help),
+                        tint = AccentBlue,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    if (!systemVpnSettingsAvailable) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.title_mode_help),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsSectionCard(
+    title: String,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        label = "section_arrow_rotation"
+    )
+
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = DarkGreySurface,
+        border = BorderStroke(1.dp, DarkGreyBorder),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp)
+                    .clickable { onExpandedChange(!expanded) }
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = TextPrimary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(DarkGreySurfaceElevated),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.ExpandMore,
+                        contentDescription = null,
+                        tint = AccentBlue,
+                        modifier = Modifier
+                            .size(20.dp)
+                            .rotate(arrowRotation)
+                    )
+                }
+            }
+
+            AnimatedVisibility(
+                visible = expanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                ) {
+                    HorizontalDivider(
+                        color = DarkGreyBorder,
+                        thickness = 1.dp,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                    )
+                    content()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionPillButton(
+    title: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    subtitle: String? = null
+) {
+    FilledTonalButton(
+        onClick = onClick,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 6.dp),
+        shape = RoundedCornerShape(12.dp),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
+        colors = ButtonDefaults.filledTonalButtonColors(
+            containerColor = DarkGreySurfaceElevated,
+            contentColor = TextPrimary
+        )
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = AccentBlue,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = TextPrimary
+                )
+                if (!subtitle.isNullOrBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                }
+            }
         }
     }
 }
