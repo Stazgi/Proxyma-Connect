@@ -26,6 +26,8 @@ import com.v2ray.ang.ui.compose.verticalScrollbar
 import com.v2ray.ang.util.Utils
 
 private const val TELEGRAM_BOT_URL = "https://t.me/ProxymaVPN_robot"
+private const val TELEGRAM_CHANNEL_URL = "https://t.me/ProxymaVPN_Channel"
+private const val TELEGRAM_SUPPORT_URL = "https://t.me/ProxymaVPN_support_bot"
 
 private val DrawerBg = Color(0xFF0E1424)
 private val HeaderCardBg = Color(0xFF1A233A)
@@ -145,7 +147,7 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
                 onClick = { Utils.openUri(context, TELEGRAM_BOT_URL) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
+                    .height(46.dp),
                 shape = RoundedCornerShape(14.dp),
                 border = BorderStroke(1.dp, AccentCyan)
             ) {
@@ -155,6 +157,49 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                OutlinedButton(
+                    onClick = { Utils.openUri(context, TELEGRAM_CHANNEL_URL) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(42.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    border = BorderStroke(1.dp, HeaderCardBg),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = HeaderCardBg.copy(alpha = 0.6f))
+                ) {
+                    Text(
+                        text = "📢 Канал",
+                        color = TextPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                OutlinedButton(
+                    onClick = { Utils.openUri(context, TELEGRAM_SUPPORT_URL) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(42.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    border = BorderStroke(1.dp, HeaderCardBg),
+                    colors = ButtonDefaults.outlinedButtonColors(containerColor = HeaderCardBg.copy(alpha = 0.6f))
+                ) {
+                    Text(
+                        text = "💬 Поддержка",
+                        color = TextPrimary,
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.weight(1f))
