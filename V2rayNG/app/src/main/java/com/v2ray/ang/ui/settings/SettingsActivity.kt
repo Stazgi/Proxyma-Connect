@@ -109,11 +109,14 @@ import com.v2ray.ang.ui.theme.ProxymaTheme
 import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.launch
+import androidx.compose.material.icons.rounded.Palette
+import androidx.compose.material.icons.rounded.VpnLock
+
 
 private const val PREF_DEV_MODE_ENABLED = "proxyma_dev_mode_enabled"
-private const val TELEGRAM_BOT_URL = "https://t.me"
-private const val TELEGRAM_CHANNEL_URL = "https://t.me"
-private const val TELEGRAM_SUPPORT_URL = "https://t.me"
+private const val TELEGRAM_BOT_URL = "https://t.me/ProxymaVPN_robot"
+private const val TELEGRAM_CHANNEL_URL = "https://t.me/ProxymaVPN_Channel"
+private const val TELEGRAM_SUPPORT_URL = "https://t.me/ProxymaVPN_support_bot"
 
 class SettingsActivity : BaseComponentActivity() {
 
@@ -390,11 +393,14 @@ fun SettingsScreen(
                     }
                 }
             }
-                        SettingsSectionCard(
+            SettingsSectionCard(
+                icon = Icons.Rounded.Palette,
                 title = stringResource(R.string.title_ui_settings),
+                subtitle = "Тема оформления, язык и скорость в шторке",
                 expanded = uiSettingsExpanded,
                 onExpandedChange = { uiSettingsExpanded = it }
             ) {
+                                
                 SettingsListItem(
                     title = stringResource(R.string.title_pref_ui_mode_night),
                     entries = uiModeNightEntries,
@@ -460,11 +466,14 @@ fun SettingsScreen(
                 }
             }
 
-            SettingsSectionCard(
+                SettingsSectionCard(
+                icon = Icons.Rounded.VpnLock,
                 title = stringResource(R.string.title_vpn_settings),
+                subtitle = "Обход локальной сети и параметры IPv6",
                 expanded = vpnSettingsExpanded,
                 onExpandedChange = { vpnSettingsExpanded = it }
             ) {
+                            
                 SettingsListItem(
                     title = stringResource(R.string.title_pref_vpn_bypass_lan),
                     entries = bypassLanEntries,
@@ -569,7 +578,7 @@ fun SettingsScreen(
                 Column(modifier = Modifier.fillMaxWidth()) {
                     NavActionRow(
                         icon = Icons.AutoMirrored.Rounded.Send,
-                        title = "Наш Telegram-бот",
+                        title = "Наш бот",
                         subtitle = "Управление подпиской, ключами и пополнение",
                         onClick = { Utils.openUri(context, TELEGRAM_BOT_URL) }
                     )
