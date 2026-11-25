@@ -1,6 +1,5 @@
 package com.v2ray.ang.ui.routing
 
-import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.viewModels
@@ -20,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -28,7 +26,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.v2ray.ang.AppConfig
@@ -44,6 +41,7 @@ import com.v2ray.ang.ui.compose.AppDropdownMenuItems
 import com.v2ray.ang.ui.compose.NavigationBarsBottomPadding
 import com.v2ray.ang.ui.compose.SelectListDialog
 import com.v2ray.ang.ui.compose.verticalScrollbar
+import com.v2ray.ang.ui.theme.ProxymaTheme
 import com.v2ray.ang.util.JsonUtil
 import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
@@ -54,16 +52,9 @@ import kotlinx.coroutines.withContext
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
-private val BgDarkTop = Color(0xFF0B0F19)
-private val BgDarkBottom = Color(0xFF131B2E)
-private val CardSurface = Color(0xFF1A233A)
-private val CardBorder = Color(0xFF2B395C)
-private val AccentCyan = Color(0xFF00E5FF)
 private val AccentIndigo = Color(0xFF6366F1)
 private val ConnectedGreen = Color(0xFF10B981)
 private val BlockRed = Color(0xFFEF4444)
-private val TextPrimary = Color(0xFFF8FAFC)
-private val TextSecondary = Color(0xFF94A3B8)
 
 private enum class RoutingMenuAction(@StringRes val labelRes: Int) {
     ImportPredefined(R.string.routing_settings_import_predefined_rulesets),
@@ -88,8 +79,7 @@ class RoutingSettingActivity : HelperBaseComponentActivity() {
         super.onCreate(savedInstanceState)
         domainStrategyState.value = getDomainStrategy()
     }
-
-    @Composable
+        @Composable
     override fun ScreenContent() {
         RoutingSettingScreen(
             viewModel = viewModel,
@@ -228,16 +218,6 @@ fun RoutingSettingScreen(
     var showPresetDialog by remember { mutableStateOf(false) }
     var showStrategyDialog by remember { mutableStateOf(false) }
 
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as? Activity)?.window
-            if (window != null) {
-                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
-            }
-        }
-    }
-
     val domainStrategies = stringArrayResource(R.array.routing_domain_strategy).toList()
     val lazyListState = rememberLazyListState()
     val reorderableState = rememberReorderableLazyListState(lazyListState) { from, to ->
@@ -249,11 +229,14 @@ fun RoutingSettingScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(BgDarkTop, BgDarkBottom)))
+            .background(
+                Brush.verticalGradient(
+                    listOf(ProxymaTheme.colors.bgTop, ProxymaTheme.colors.bgBottom)
+                )
+            )
             .statusBarsPadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Верхняя панель
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -265,7 +248,7 @@ fun RoutingSettingScreen(
                     IconButton(onClick = onBackClick) {
                         Text(
                             text = "←",
-                            color = TextPrimary,
+                            color = ProxymaTheme.colors.textPrimary,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -273,13 +256,13 @@ fun RoutingSettingScreen(
                     Column {
                         Text(
                             text = "Маршрутизация",
-                            color = TextPrimary,
+                            color = ProxymaTheme.colors.textPrimary,
                             fontSize = 19.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = "Правила распределения трафика",
-                            color = AccentCyan,
+                            color = ProxymaTheme.colors.accentCyan,
                             fontSize = 11.sp
                         )
                     }
@@ -290,7 +273,7 @@ fun RoutingSettingScreen(
                         Icon(
                             painter = painterResource(R.drawable.ic_add_24dp),
                             contentDescription = stringResource(R.string.acc_add_rule),
-                            tint = AccentCyan
+                            tint = ProxymaTheme.colors.accentCyan
                         )
                     }
                     Box {
@@ -298,13 +281,13 @@ fun RoutingSettingScreen(
                             Icon(
                                 painter = painterResource(R.drawable.ic_more_vert_24dp),
                                 contentDescription = stringResource(R.string.acc_more),
-                                tint = TextPrimary
+                                tint = ProxymaTheme.colors.textPrimary
                             )
                         }
                         DropdownMenu(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false },
-                            containerColor = CardSurface
+                            containerColor = ProxymaTheme.colors.cardSurface
                         ) {
                             AppDropdownMenuItems(RoutingMenuAction.entries, { it.labelRes }) { action ->
                                 showMenu = false
@@ -328,7 +311,6 @@ fun RoutingSettingScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = NavigationBarsBottomPadding()
             ) {
-                // Карточка доменной стратегии
                 item(key = "domain_strategy") {
                     Surface(
                         modifier = Modifier
@@ -336,8 +318,8 @@ fun RoutingSettingScreen(
                             .clip(RoundedCornerShape(16.dp))
                             .clickable { showStrategyDialog = true },
                         shape = RoundedCornerShape(16.dp),
-                        color = CardSurface,
-                        border = BorderStroke(1.dp, CardBorder)
+                        color = ProxymaTheme.colors.cardSurface,
+                        border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
@@ -347,14 +329,14 @@ fun RoutingSettingScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "Доменная стратегия",
-                                    color = TextPrimary,
+                                    color = ProxymaTheme.colors.textPrimary,
                                     fontSize = 15.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
                                     text = formatStrategyDesc(domainStrategy),
-                                    color = TextSecondary,
+                                    color = ProxymaTheme.colors.textSecondary,
                                     fontSize = 12.sp,
                                     lineHeight = 16.sp
                                 )
@@ -367,7 +349,7 @@ fun RoutingSettingScreen(
                             ) {
                                 Text(
                                     text = domainStrategy,
-                                    color = AccentCyan,
+                                    color = ProxymaTheme.colors.accentCyan,
                                     fontSize = 12.sp,
                                     fontWeight = FontWeight.Bold,
                                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
@@ -387,13 +369,13 @@ fun RoutingSettingScreen(
                     ) {
                         Text(
                             text = "Активные правила (${rulesets.count { it.enabled == true }} из ${rulesets.size})",
-                            color = TextPrimary,
+                            color = ProxymaTheme.colors.textPrimary,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
                             text = "Нажмите ✎ для правки",
-                            color = TextSecondary,
+                            color = ProxymaTheme.colors.textSecondary,
                             fontSize = 11.sp
                         )
                     }
@@ -418,8 +400,7 @@ fun RoutingSettingScreen(
             }
         }
     }
-
-    if (showStrategyDialog) {
+        if (showStrategyDialog) {
         SelectListDialog(
             title = "Доменная стратегия",
             options = domainStrategies,
@@ -445,7 +426,6 @@ fun RoutingSettingScreen(
         )
     }
 }
-
 @Composable
 private fun RoutingRulesetCard(
     ruleset: RulesetItem,
@@ -455,7 +435,7 @@ private fun RoutingRulesetCard(
 ) {
     val isEnabled = ruleset.enabled ?: false
     val (tagLabel, tagColor) = when (ruleset.outboundTag?.lowercase()) {
-        "proxy" -> "Через VPN" to AccentCyan
+        "proxy" -> "Через VPN" to ProxymaTheme.colors.accentCyan
         "direct" -> "Без VPN" to ConnectedGreen
         "block" -> "Блокировать" to BlockRed
         else -> (ruleset.outboundTag ?: "") to AccentIndigo
@@ -464,10 +444,22 @@ private fun RoutingRulesetCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = if (isDragging) CardSurface else if (isEnabled) CardSurface.copy(alpha = 0.9f) else CardSurface.copy(alpha = 0.45f),
+        color = if (isDragging) {
+            ProxymaTheme.colors.cardSurface
+        } else if (isEnabled) {
+            ProxymaTheme.colors.cardSurface.copy(alpha = 0.92f)
+        } else {
+            ProxymaTheme.colors.cardSurface.copy(alpha = 0.55f)
+        },
         border = BorderStroke(
             width = if (isDragging) 1.5.dp else 1.dp,
-            color = if (isDragging) AccentCyan else if (isEnabled) CardBorder else CardBorder.copy(alpha = 0.5f)
+            color = if (isDragging) {
+                ProxymaTheme.colors.accentCyan
+            } else if (isEnabled) {
+                ProxymaTheme.colors.cardBorder
+            } else {
+                ProxymaTheme.colors.cardBorder.copy(alpha = 0.5f)
+            }
         )
     ) {
         Row(
@@ -478,7 +470,7 @@ private fun RoutingRulesetCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         text = formatRuleTitle(ruleset.remarks),
-                        color = if (isEnabled) TextPrimary else TextSecondary,
+                        color = if (isEnabled) ProxymaTheme.colors.textPrimary else ProxymaTheme.colors.textSecondary,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold,
                         maxLines = 1,
@@ -491,7 +483,7 @@ private fun RoutingRulesetCard(
                             painter = painterResource(R.drawable.ic_lock_24dp),
                             contentDescription = stringResource(R.string.acc_locked),
                             modifier = Modifier.size(14.dp),
-                            tint = TextSecondary
+                            tint = ProxymaTheme.colors.textSecondary
                         )
                     }
                 }
@@ -501,7 +493,7 @@ private fun RoutingRulesetCard(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = domainIpInfo,
-                        color = TextSecondary,
+                        color = ProxymaTheme.colors.textSecondary,
                         fontSize = 11.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -534,7 +526,7 @@ private fun RoutingRulesetCard(
                     Icon(
                         painter = painterResource(R.drawable.ic_edit_24dp),
                         contentDescription = stringResource(R.string.acc_edit),
-                        tint = TextSecondary
+                        tint = ProxymaTheme.colors.textSecondary
                     )
                 }
                 Switch(
@@ -543,8 +535,8 @@ private fun RoutingRulesetCard(
                     colors = SwitchDefaults.colors(
                         checkedThumbColor = Color.White,
                         checkedTrackColor = AccentIndigo,
-                        uncheckedThumbColor = TextSecondary,
-                        uncheckedTrackColor = BgDarkTop
+                        uncheckedThumbColor = ProxymaTheme.colors.textSecondary,
+                        uncheckedTrackColor = ProxymaTheme.colors.bgTop
                     )
                 )
             }
