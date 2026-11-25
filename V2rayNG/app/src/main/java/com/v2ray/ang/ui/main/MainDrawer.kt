@@ -26,9 +26,9 @@ import com.v2ray.ang.ui.compose.verticalScrollbar
 import com.v2ray.ang.ui.theme.ProxymaTheme
 import com.v2ray.ang.util.Utils
 
-private const val TELEGRAM_BOT_URL = "https://t.me"
-private const val TELEGRAM_CHANNEL_URL = "https://t.me"
-private const val TELEGRAM_SUPPORT_URL = "https://t.me"
+private const val TELEGRAM_BOT_URL = "https://t.me/ProxymaVPN_robot"
+private const val TELEGRAM_CHANNEL_URL = "https://t.me/ProxymaVPN_Channel"
+private const val TELEGRAM_SUPPORT_URL = "https://t.me/ProxymaVPN_support_bot"
 
 private val AccentIndigo = Color(0xFF6366F1)
 
