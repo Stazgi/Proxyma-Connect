@@ -29,26 +29,43 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.HelpOutline
+import androidx.compose.material.icons.rounded.ChevronRight
+import androidx.compose.material.icons.rounded.Clear
 import androidx.compose.material.icons.rounded.ExpandMore
 import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.Visibility
+import androidx.compose.material.icons.rounded.VisibilityOff
 import androidx.compose.material.icons.rounded.VpnKey
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -59,13 +76,18 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -85,23 +107,22 @@ import com.v2ray.ang.root.RootManager
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.NavigationBarsSpacer
-import com.v2ray.ang.ui.compose.SettingsEditItem
-import com.v2ray.ang.ui.compose.SettingsListItem
-import com.v2ray.ang.ui.compose.SettingsMenuItem
-import com.v2ray.ang.ui.compose.SettingsSwitchItem
 import com.v2ray.ang.ui.compose.ThemeManager
 import com.v2ray.ang.ui.compose.verticalScrollbar
 import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.launch
 
-private val DarkGreyBackground = Color(0xFF121316)
-private val DarkGreySurface = Color(0xFF1B1D22)
-private val DarkGreySurfaceElevated = Color(0xFF252830)
-private val DarkGreyBorder = Color(0xFF2F333D)
-private val AccentBlue = Color(0xFF5C9DFF)
-private val TextPrimary = Color(0xFFECEEF2)
-private val TextSecondary = Color(0xFF9AA0AE)
+private val DarkGreyBackground = Color(0xFF111215)
+private val DarkGreySurface = Color(0xFF191B20)
+private val DarkGreySurfaceElevated = Color(0xFF23262E)
+private val DarkGreyDialog = Color(0xFF1E2026)
+private val DarkGreyBorder = Color(0xFF2E323C)
+private val DarkGreyDivider = Color(0xFF252831)
+private val AccentBlue = Color(0xFF64A2FF)
+private val TextPrimary = Color(0xFFF0F2F5)
+private val TextSecondary = Color(0xFF969CA9)
+private val TextMuted = Color(0xFF686E7B)
 
 private val DarkGreyColorScheme = darkColorScheme(
     primary = AccentBlue,
@@ -119,7 +140,7 @@ private val DarkGreyColorScheme = darkColorScheme(
     surfaceVariant = DarkGreySurfaceElevated,
     onSurfaceVariant = TextSecondary,
     outline = DarkGreyBorder,
-    outlineVariant = Color(0xFF262932)
+    outlineVariant = DarkGreyDivider
 )
 
 class SettingsActivity : BaseComponentActivity() {
@@ -147,7 +168,7 @@ class SettingsActivity : BaseComponentActivity() {
         } catch (error: SecurityException) {
             reportSystemVpnSettingsFailure(error)
         }
-            }
+    }
 
     private fun reportSystemVpnSettingsFailure(error: RuntimeException) {
         LogUtil.e(AppConfig.TAG, "Cannot open system VPN settings", error)
@@ -175,7 +196,7 @@ fun SettingsScreen(
     onModeHelpClicked: () -> Unit,
     onSystemVpnSettingsClicked: () -> Unit
 ) {
-    val scrollState = rememberScrollState()
+        val scrollState = rememberScrollState()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val systemVpnSettingsAvailable by viewModel.systemVpnSettingsAvailable.collectAsStateWithLifecycle()
 
@@ -220,7 +241,7 @@ fun SettingsScreen(
     var hevTunLogLevel by rememberMmkvString(AppConfig.PREF_HEV_TUNNEL_LOGLEVEL, AppConfig.DEFAULT_HEV_TUNNEL_LOGLEVEL)
     var hevTunRwTimeout by rememberMmkvString(AppConfig.PREF_HEV_TUNNEL_RW_TIMEOUT, "")
     var useHevTun by rememberMmkvBool(AppConfig.PREF_USE_HEV_TUNNEL, true)
-        var enableLocalProxy by rememberMmkvBool(AppConfig.PREF_ENABLE_LOCAL_PROXY, true)
+    var enableLocalProxy by rememberMmkvBool(AppConfig.PREF_ENABLE_LOCAL_PROXY, true)
     var socksPort by rememberMmkvString(AppConfig.PREF_SOCKS_PORT, "")
     var dynamicSocksPort by rememberMmkvBool(AppConfig.PREF_DYNAMIC_SOCKS_PORT, false)
     var socksUsername by rememberMmkvString(AppConfig.PREF_SOCKS_USERNAME, "")
@@ -260,8 +281,7 @@ fun SettingsScreen(
     val localProxyForced = hevTunEnabled
     val effectiveLocalProxy = enableLocalProxy || localProxyForced
     val muxXudpConcurrencyInt = muxXudpConcurrency.toIntOrNull() ?: AppConfig.DEFAULT_MUX_XUDP_CONCURRENCY.toInt()
-
-    val dynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+        val dynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     LaunchedEffect(dynamicColorSupported) {
         if (!dynamicColorSupported && dynamicColor) {
             dynamicColor = false
@@ -294,7 +314,7 @@ fun SettingsScreen(
 
     Scaffold(
         containerColor = DarkGreyBackground,
-                contentWindowInsets = WindowInsets(0),
+        contentWindowInsets = WindowInsets(0),
         topBar = {
             AppTopBar(
                 title = stringResource(R.string.title_settings),
@@ -310,7 +330,7 @@ fun SettingsScreen(
                 .padding(innerPadding)
                 .verticalScrollbar(scrollState)
                 .verticalScroll(scrollState)
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             QuickModeAndActionsBar(
@@ -328,19 +348,21 @@ fun SettingsScreen(
                 expanded = uiSettingsExpanded,
                 onExpandedChange = { uiSettingsExpanded = it }
             ) {
-                SettingsSwitchItem(
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_speed_enabled),
                     summary = stringResource(R.string.summary_pref_speed_enabled),
                     checked = speedEnabled,
                     onCheckedChange = { speedEnabled = it }
                 )
-                SettingsSwitchItem(
+                SettingsRowDivider()
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_confirm_remove),
                     summary = stringResource(R.string.summary_pref_confirm_remove),
                     checked = confirmRemove,
                     onCheckedChange = { confirmRemove = it }
                 )
-                SettingsSwitchItem(
+                SettingsRowDivider()
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_double_column_display),
                     summary = stringResource(R.string.summary_pref_double_column_display),
                     checked = doubleColumnDisplay,
@@ -349,7 +371,8 @@ fun SettingsScreen(
                         SettingsChangeManager.makeSetupGroupTab()
                     }
                 )
-                SettingsSwitchItem(
+                SettingsRowDivider()
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_group_all_display),
                     summary = stringResource(R.string.summary_pref_group_all_display),
                     checked = groupAllDisplay,
@@ -358,7 +381,8 @@ fun SettingsScreen(
                         SettingsChangeManager.makeSetupGroupTab()
                     }
                 )
-                SettingsSwitchItem(
+                SettingsRowDivider()
+                                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_dynamic_color),
                     summary = stringResource(R.string.summary_pref_dynamic_color),
                     checked = dynamicColor,
@@ -368,7 +392,8 @@ fun SettingsScreen(
                         ThemeManager.setDynamicColorEnabled(it)
                     }
                 )
-                                SettingsListItem(
+                SettingsRowDivider()
+                DarkListRow(
                     title = stringResource(R.string.title_language),
                     entries = languageEntries,
                     values = languageValues,
@@ -378,7 +403,8 @@ fun SettingsScreen(
                         AppLocaleManager.setApplicationLanguage(it)
                     }
                 )
-                SettingsListItem(
+                SettingsRowDivider()
+                DarkListRow(
                     title = stringResource(R.string.title_pref_ui_mode_night),
                     entries = uiModeNightEntries,
                     values = uiModeNightValues,
@@ -395,46 +421,52 @@ fun SettingsScreen(
                 expanded = vpnSettingsExpanded,
                 onExpandedChange = { vpnSettingsExpanded = it }
             ) {
-                SettingsSwitchItem(
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_ipv6_enabled),
                     summary = stringResource(R.string.summary_pref_ipv6_enabled),
                     checked = ipv6Enabled,
                     onCheckedChange = { ipv6Enabled = it }
                 )
-                SettingsSwitchItem(
+                SettingsRowDivider()
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_prefer_ipv6),
                     summary = stringResource(R.string.summary_pref_prefer_ipv6),
                     checked = preferIpv6,
                     onCheckedChange = { preferIpv6 = it }
                 )
-                SettingsSwitchItem(
+                SettingsRowDivider()
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_local_dns_enabled),
                     summary = stringResource(R.string.summary_pref_local_dns_enabled),
                     checked = localDns,
                     enabled = isVpn,
                     onCheckedChange = { localDns = it }
                 )
-                SettingsSwitchItem(
+                SettingsRowDivider()
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_fake_dns_enabled),
                     summary = stringResource(R.string.summary_pref_fake_dns_enabled),
                     checked = fakeDns,
                     enabled = isVpn && localDns,
                     onCheckedChange = { fakeDns = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_vpn_dns),
                     value = vpnDns,
                     enabled = isVpn && !localDns,
                     onValueChanged = { vpnDns = it }
                 )
-                SettingsSwitchItem(
+                SettingsRowDivider()
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_append_http_proxy),
                     summary = stringResource(R.string.summary_pref_append_http_proxy),
                     checked = appendHttpProxy,
                     enabled = effectiveLocalProxy,
                     onCheckedChange = { appendHttpProxy = it }
                 )
-                SettingsListItem(
+                SettingsRowDivider()
+                DarkListRow(
                     title = stringResource(R.string.title_pref_vpn_bypass_lan),
                     entries = bypassLanEntries,
                     values = bypassLanValues,
@@ -442,7 +474,8 @@ fun SettingsScreen(
                     enabled = isVpn,
                     onSelected = { vpnBypassLan = it }
                 )
-                                SettingsListItem(
+                SettingsRowDivider()
+                DarkListRow(
                     title = stringResource(R.string.title_pref_vpn_interface_address),
                     entries = interfaceAddrEntries,
                     values = interfaceAddrValues,
@@ -450,14 +483,16 @@ fun SettingsScreen(
                     enabled = isVpn,
                     onSelected = { vpnInterfaceAddress = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_vpn_mtu),
                     value = vpnMtu,
                     enabled = isVpn,
                     keyboardNumber = true,
                     onValueChanged = { vpnMtu = it }
                 )
-                SettingsSwitchItem(
+                                SettingsRowDivider()
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_use_hev_tunnel),
                     summary = stringResource(R.string.summary_pref_use_hev_tunnel),
                     checked = useHevTun,
@@ -469,7 +504,8 @@ fun SettingsScreen(
                         }
                     }
                 )
-                SettingsListItem(
+                SettingsRowDivider()
+                DarkListRow(
                     title = stringResource(R.string.title_pref_hev_tunnel_loglevel),
                     entries = hevLogEntries,
                     values = hevLogValues,
@@ -477,7 +513,8 @@ fun SettingsScreen(
                     enabled = hevTunEnabled,
                     onSelected = { hevTunLogLevel = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_hev_tunnel_rw_timeout),
                     value = hevTunRwTimeout,
                     enabled = hevTunEnabled,
@@ -491,19 +528,21 @@ fun SettingsScreen(
                 expanded = coreSettingsExpanded,
                 onExpandedChange = { coreSettingsExpanded = it }
             ) {
-                SettingsSwitchItem(
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_sniffing_enabled),
                     summary = stringResource(R.string.summary_pref_sniffing_enabled),
                     checked = sniffingEnabled,
                     onCheckedChange = { sniffingEnabled = it }
                 )
-                SettingsSwitchItem(
+                SettingsRowDivider()
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_route_only_enabled),
                     summary = stringResource(R.string.summary_pref_route_only_enabled),
                     checked = routeOnlyEnabled,
                     onCheckedChange = { routeOnlyEnabled = it }
                 )
-                SettingsSwitchItem(
+                SettingsRowDivider()
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_enable_local_proxy),
                     summary = stringResource(R.string.summary_pref_enable_local_proxy),
                     checked = enableLocalProxy,
@@ -517,70 +556,81 @@ fun SettingsScreen(
                         }
                     }
                 )
-                                SettingsSwitchItem(
+                SettingsRowDivider()
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_proxy_sharing_enabled),
                     summary = stringResource(R.string.summary_pref_proxy_sharing_enabled),
                     checked = proxySharing,
                     enabled = effectiveLocalProxy,
                     onCheckedChange = { proxySharing = it }
                 )
-                SettingsSwitchItem(
+                SettingsRowDivider()
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_dynamic_socks_port),
                     summary = stringResource(R.string.summary_pref_dynamic_socks_port),
                     checked = dynamicSocksPort,
                     enabled = effectiveLocalProxy,
                     onCheckedChange = { dynamicSocksPort = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_socks_port),
                     value = socksPort,
                     enabled = effectiveLocalProxy && !dynamicSocksPort,
                     keyboardNumber = true,
                     onValueChanged = { socksPort = it }
                 )
-                SettingsEditItem(
+                                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_socks_username),
                     value = socksUsername,
                     enabled = effectiveLocalProxy,
                     onValueChanged = { socksUsername = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_socks_password),
                     value = socksPassword,
                     enabled = effectiveLocalProxy,
                     isPassword = true,
                     onValueChanged = { socksPassword = it }
                 )
-                SettingsSwitchItem(
+                SettingsRowDivider()
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_socks_enable_udp),
                     summary = stringResource(R.string.summary_pref_socks_enable_udp),
                     checked = socksEnableUdp,
                     enabled = effectiveLocalProxy,
                     onCheckedChange = { socksEnableUdp = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_remote_dns),
                     value = remoteDns,
                     onValueChanged = { remoteDns = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_domestic_dns),
                     value = domesticDns,
                     onValueChanged = { domesticDns = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_dns_hosts),
                     value = dnsHosts,
                     onValueChanged = { dnsHosts = it }
                 )
-                SettingsListItem(
+                SettingsRowDivider()
+                DarkListRow(
                     title = stringResource(R.string.title_core_loglevel),
                     entries = coreLogLevelEntries,
                     values = coreLogLevelValues,
                     selectedValue = coreLogLevel,
                     onSelected = { coreLogLevel = it }
                 )
-                SettingsListItem(
+                SettingsRowDivider()
+                DarkListRow(
                     title = stringResource(R.string.title_outbound_domain_resolve_method),
                     entries = outboundResolveEntries,
                     values = outboundResolveValues,
@@ -591,30 +641,33 @@ fun SettingsScreen(
 
             SettingsSectionCard(
                 title = stringResource(R.string.title_mux_settings),
-                                expanded = muxSettingsExpanded,
+                expanded = muxSettingsExpanded,
                 onExpandedChange = { muxSettingsExpanded = it }
             ) {
-                SettingsSwitchItem(
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_mux_enabled),
                     summary = stringResource(R.string.summary_pref_mux_enabled),
                     checked = mux,
                     onCheckedChange = { mux = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_mux_concurrency),
                     value = muxConcurrency,
                     enabled = mux,
                     keyboardNumber = true,
                     onValueChanged = { muxConcurrency = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_mux_xudp_concurrency),
                     value = muxXudpConcurrency,
                     enabled = mux,
                     keyboardNumber = true,
                     onValueChanged = { muxXudpConcurrency = it }
                 )
-                SettingsListItem(
+                SettingsRowDivider()
+                DarkListRow(
                     title = stringResource(R.string.title_pref_mux_xudp_quic),
                     entries = xudpQuicEntries,
                     values = xudpQuicValues,
@@ -623,18 +676,18 @@ fun SettingsScreen(
                     onSelected = { muxXudpQuic = it }
                 )
             }
-
-            SettingsSectionCard(
+                        SettingsSectionCard(
                 title = stringResource(R.string.title_fragment_settings),
                 expanded = fragmentSettingsExpanded,
                 onExpandedChange = { fragmentSettingsExpanded = it }
             ) {
-                SettingsSwitchItem(
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_fragment_enabled),
                     checked = fragment,
                     onCheckedChange = { fragment = it }
                 )
-                SettingsListItem(
+                SettingsRowDivider()
+                DarkListRow(
                     title = stringResource(R.string.title_pref_fragment_packets),
                     entries = fragmentPacketsEntries,
                     values = fragmentPacketsValues,
@@ -642,19 +695,22 @@ fun SettingsScreen(
                     enabled = fragment,
                     onSelected = { fragmentPackets = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_fragment_length),
                     value = fragmentLength,
                     enabled = fragment,
                     onValueChanged = { fragmentLength = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_fragment_interval),
                     value = fragmentInterval,
                     enabled = fragment,
                     onValueChanged = { fragmentInterval = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_fragment_maxsplit),
                     value = fragmentMaxSplit,
                     enabled = fragment,
@@ -666,9 +722,9 @@ fun SettingsScreen(
             SettingsSectionCard(
                 title = stringResource(R.string.title_observatory_settings),
                 expanded = observatorySettingsExpanded,
-                                onExpandedChange = { observatorySettingsExpanded = it }
+                onExpandedChange = { observatorySettingsExpanded = it }
             ) {
-                SettingsEditItem(
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_observatory_least_ping_interval),
                     value = observatoryLeastPingInterval,
                     onValueChanged = {
@@ -677,7 +733,8 @@ fun SettingsScreen(
                         }
                     }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_observatory_least_load_interval),
                     value = observatoryLeastLoadInterval,
                     onValueChanged = {
@@ -686,14 +743,16 @@ fun SettingsScreen(
                         }
                     }
                 )
-                SettingsListItem(
+                SettingsRowDivider()
+                DarkListRow(
                     title = stringResource(R.string.title_pref_observatory_least_load_method),
                     entries = observatoryLeastLoadMethodEntries,
                     values = observatoryLeastLoadMethodValues,
                     selectedValue = observatoryLeastLoadMethod,
                     onSelected = { observatoryLeastLoadMethod = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_observatory_least_load_sampling),
                     value = observatoryLeastLoadSampling,
                     keyboardNumber = true,
@@ -703,7 +762,8 @@ fun SettingsScreen(
                         }
                     }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_observatory_least_load_timeout),
                     value = observatoryLeastLoadTimeout,
                     onValueChanged = {
@@ -713,19 +773,19 @@ fun SettingsScreen(
                     }
                 )
             }
-
-            SettingsSectionCard(
+                        SettingsSectionCard(
                 title = stringResource(R.string.title_advanced),
                 expanded = advancedSettingsExpanded,
                 onExpandedChange = { advancedSettingsExpanded = it }
             ) {
-                SettingsSwitchItem(
+                DarkSwitchRow(
                     title = stringResource(R.string.title_pref_is_booted),
                     summary = stringResource(R.string.summary_pref_is_booted),
                     checked = isBooted,
                     onCheckedChange = { isBooted = it }
                 )
                 if (systemVpnSettingsAvailable) {
+                    SettingsRowDivider()
                     ActionPillButton(
                         title = stringResource(R.string.title_system_vpn_settings),
                         subtitle = stringResource(R.string.summary_system_vpn_settings),
@@ -733,18 +793,21 @@ fun SettingsScreen(
                         onClick = onSystemVpnSettingsClicked
                     )
                 }
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_delay_test_url),
                     value = delayTestUrl,
                     onValueChanged = { delayTestUrl = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_real_ping_concurrency),
                     value = realPingConcurrency,
                     keyboardNumber = true,
                     onValueChanged = { realPingConcurrency = it }
                 )
-                SettingsEditItem(
+                SettingsRowDivider()
+                DarkEditRow(
                     title = stringResource(R.string.title_pref_ip_api_url),
                     value = ipApiUrl,
                     onValueChanged = { ipApiUrl = it }
@@ -756,19 +819,7 @@ fun SettingsScreen(
                 expanded = modeSettingsExpanded,
                 onExpandedChange = { modeSettingsExpanded = it }
             ) {
-                SettingsListItem(
-                    title = stringResource(R.string.title_mode),
-                    entries = modeEntries,
-                    values = modeValues,
-                    selectedValue = mode,
-                    onSelected = { mode = it }
-                )
-                ActionPillButton(
-                    title = stringResource(R.string.title_mode_help),
-                    icon = Icons.AutoMirrored.Rounded.HelpOutline,
-                    onClick = onModeHelpClicked
-                )
-                SettingsSwitchItem(
+                DarkSwitchRow(
                     title = stringResource(R.string.title_root_mode_enabled),
                     summary = stringResource(R.string.summary_root_mode_enabled),
                     checked = enableRootMode,
@@ -782,7 +833,8 @@ fun SettingsScreen(
                         }
                     }
                 )
-                SettingsSwitchItem(
+                SettingsRowDivider()
+                DarkSwitchRow(
                     title = stringResource(R.string.title_root_lan_sharing),
                     summary = stringResource(R.string.summary_root_lan_sharing),
                     checked = lanSharing,
@@ -804,6 +856,346 @@ fun SettingsScreen(
     }
 }
 
+@Composable
+private fun SettingsRowDivider() {
+    HorizontalDivider(
+        color = DarkGreyDivider,
+        thickness = 1.dp,
+        modifier = Modifier.padding(horizontal = 16.dp)
+    )
+}
+
+@Composable
+private fun DarkSwitchRow(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    summary: String? = null,
+    enabled: Boolean = true
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 60.dp)
+            .clickable(enabled = enabled) { onCheckedChange(!checked) }
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .alpha(if (enabled) 1f else 0.45f),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(3.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = TextPrimary
+            )
+            if (!summary.isNullOrBlank()) {
+                Text(
+                    text = summary,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextSecondary
+                )
+            }
+        }
+
+        Switch(
+            checked = checked,
+            onCheckedChange = null,
+            enabled = enabled,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color(0xFF0A192F),
+                checkedTrackColor = AccentBlue,
+                uncheckedThumbColor = TextSecondary,
+                uncheckedTrackColor = DarkGreySurfaceElevated,
+                uncheckedBorderColor = DarkGreyBorder,
+                disabledCheckedTrackColor = AccentBlue.copy(alpha = 0.5f),
+                disabledUncheckedTrackColor = DarkGreySurfaceElevated
+            )
+        )
+    }
+}
+
+@Composable
+private fun DarkListRow(
+    title: String,
+    entries: List<String>,
+    values: List<String>,
+    selectedValue: String,
+    onSelected: (String) -> Unit,
+    enabled: Boolean = true
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    val selectedIndex = values.indexOf(selectedValue)
+    val displayLabel = if (selectedIndex >= 0 && selectedIndex < entries.size) {
+        entries[selectedIndex]
+    } else {
+        selectedValue
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 58.dp)
+            .clickable(enabled = enabled) { showDialog = true }
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .alpha(if (enabled) 1f else 0.45f),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = TextPrimary,
+            modifier = Modifier.weight(1f)
+        )
+
+        ValueBadge(text = displayLabel, isEmpty = displayLabel.isBlank())
+
+        Icon(
+            imageVector = Icons.Rounded.ChevronRight,
+            contentDescription = null,
+            tint = TextSecondary,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            containerColor = DarkGreyDialog,
+            titleContentColor = TextPrimary,
+            shape = RoundedCornerShape(20.dp),
+            title = {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            text = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    values.forEachIndexed { index, value ->
+                        val entryLabel = entries.getOrElse(index) { value }
+                        val isSelected = value == selectedValue
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(
+                                    if (isSelected) AccentBlue.copy(alpha = 0.14f) else Color.Transparent
+                                )
+                                .selectable(
+                                    selected = isSelected,
+                                    role = Role.RadioButton,
+                                    onClick = {
+                                        onSelected(value)
+                                        showDialog = false
+                                    }
+                                )
+                                .padding(horizontal = 12.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            RadioButton(
+                                selected = isSelected,
+                                onClick = null,
+                                colors = RadioButtonDefaults.colors(
+                                    selectedColor = AccentBlue,
+                                    unselectedColor = TextSecondary
+                                )
+                            )
+                            Text(
+                                text = entryLabel,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (isSelected) AccentBlue else TextPrimary,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text(
+                        text = stringResource(android.R.string.cancel),
+                        color = TextSecondary
+                    )
+                }
+            }
+        )
+    }
+}
+@Composable
+private fun DarkEditRow(
+    title: String,
+    value: String,
+    onValueChanged: (String) -> Unit,
+    enabled: Boolean = true,
+    keyboardNumber: Boolean = false,
+    isPassword: Boolean = false
+) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    val displayValue = when {
+        value.isBlank() -> "—"
+        isPassword -> "•".repeat(value.length.coerceAtMost(8))
+        else -> value
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 58.dp)
+            .clickable(enabled = enabled) { showDialog = true }
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+            .alpha(if (enabled) 1f else 0.45f),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = TextPrimary,
+            modifier = Modifier.weight(1f)
+        )
+
+        ValueBadge(text = displayValue, isEmpty = value.isBlank())
+
+        Icon(
+            imageVector = Icons.Rounded.ChevronRight,
+            contentDescription = null,
+            tint = TextSecondary,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+
+    if (showDialog) {
+        var draft by remember(value) { mutableStateOf(value) }
+        var passwordVisible by remember { mutableStateOf(false) }
+
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            containerColor = DarkGreyDialog,
+            titleContentColor = TextPrimary,
+            shape = RoundedCornerShape(20.dp),
+            title = {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+            },
+            text = {
+                OutlinedTextField(
+                    value = draft,
+                    onValueChange = { draft = it },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = when {
+                            keyboardNumber -> KeyboardType.Number
+                            isPassword -> KeyboardType.Password
+                            else -> KeyboardType.Text
+                        }
+                    ),
+                    visualTransformation = if (isPassword && !passwordVisible) {
+                        PasswordVisualTransformation()
+                    } else {
+                        VisualTransformation.None
+                    },
+                    trailingIcon = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (isPassword && draft.isNotEmpty()) {
+                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                    Icon(
+                                        imageVector = if (passwordVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
+                                        contentDescription = null,
+                                        tint = TextSecondary
+                                    )
+                                }
+                            }
+                            if (draft.isNotEmpty()) {
+                                IconButton(onClick = { draft = "" }) {
+                                    Icon(
+                                        imageVector = Icons.Rounded.Clear,
+                                        contentDescription = null,
+                                        tint = TextSecondary
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = AccentBlue,
+                        unfocusedBorderColor = DarkGreyBorder,
+                        focusedContainerColor = DarkGreySurface,
+                        unfocusedContainerColor = DarkGreySurface,
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        cursorColor = AccentBlue
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onValueChanged(draft.trim())
+                        showDialog = false
+                    }
+                ) {
+                    Text(
+                        text = stringResource(android.R.string.ok),
+                        color = AccentBlue,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text(
+                        text = stringResource(android.R.string.cancel),
+                        color = TextSecondary
+                    )
+                }
+            }
+        )
+    }
+}
+
+@Composable
+private fun ValueBadge(
+    text: String,
+    isEmpty: Boolean
+) {
+    Surface(
+        shape = RoundedCornerShape(8.dp),
+        color = DarkGreySurfaceElevated,
+        border = BorderStroke(1.dp, DarkGreyBorder),
+        modifier = Modifier.widthIn(max = 150.dp)
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelMedium,
+            color = if (isEmpty) TextMuted else AccentBlue,
+            fontWeight = FontWeight.Medium,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+        )
+    }
+}
 @Composable
 private fun QuickModeAndActionsBar(
     modeEntries: List<String>,
@@ -868,7 +1260,8 @@ private fun QuickModeAndActionsBar(
                     }
                 }
             }
-                        Row(
+
+            Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -995,12 +1388,11 @@ private fun SettingsSectionCard(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 8.dp)
+                        .padding(bottom = 6.dp)
                 ) {
                     HorizontalDivider(
                         color = DarkGreyBorder,
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                        thickness = 1.dp
                     )
                     content()
                 }
@@ -1020,7 +1412,7 @@ private fun ActionPillButton(
         onClick = onClick,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 6.dp),
+            .padding(horizontal = 14.dp, vertical = 8.dp),
         shape = RoundedCornerShape(12.dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         colors = ButtonDefaults.filledTonalButtonColors(
