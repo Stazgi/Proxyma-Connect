@@ -745,8 +745,8 @@ private fun QuickModeAndActionsBar(
 ) {
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = DarkGreySurface,
-        border = BorderStroke(1.dp, DarkGreyBorder),
+        color = ProxymaTheme.colors.cardSurface, // Заменено
+        border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder), // Заменено
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -756,14 +756,14 @@ private fun QuickModeAndActionsBar(
             Text(
                 text = stringResource(R.string.title_mode),
                 style = MaterialTheme.typography.labelMedium,
-                color = TextSecondary
+                color = ProxymaTheme.colors.textSecondary // Заменено
             )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                                modeValues.forEachIndexed { index, value ->
+                modeValues.forEachIndexed { index, value ->
                     val label = modeEntries.getOrElse(index) { value }
                     val isSelected = value == selectedMode
 
@@ -775,8 +775,8 @@ private fun QuickModeAndActionsBar(
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 10.dp),
                         colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = if (isSelected) AccentBlue else DarkGreySurfaceElevated,
-                            contentColor = if (isSelected) Color(0xFF0B1424) else TextPrimary
+                            containerColor = if (isSelected) ProxymaTheme.colors.accentCyan else ProxymaTheme.colors.bgBottom, // Заменено
+                            contentColor = if (isSelected) ProxymaTheme.colors.bgTop else ProxymaTheme.colors.textPrimary // Заменено
                         )
                     ) {
                         if (isSelected) {
@@ -809,14 +809,14 @@ private fun QuickModeAndActionsBar(
                             .height(44.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = DarkGreySurfaceElevated,
-                            contentColor = TextPrimary
+                            containerColor = ProxymaTheme.colors.bgBottom, // Заменено
+                            contentColor = ProxymaTheme.colors.textPrimary // Заменено
                         )
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.VpnKey,
                             contentDescription = null,
-                            tint = AccentBlue,
+                            tint = ProxymaTheme.colors.accentCyan, // Заменено
                             modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
@@ -836,14 +836,14 @@ private fun QuickModeAndActionsBar(
                     shape = RoundedCornerShape(12.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp),
                     colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = DarkGreySurfaceElevated,
-                        contentColor = TextPrimary
+                        containerColor = ProxymaTheme.colors.bgBottom, // Заменено
+                        contentColor = ProxymaTheme.colors.textPrimary // Заменено
                     )
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.HelpOutline,
                         contentDescription = stringResource(R.string.title_mode_help),
-                        tint = AccentBlue,
+                        tint = ProxymaTheme.colors.accentCyan, // Заменено
                         modifier = Modifier.size(20.dp)
                     )
                     if (!systemVpnSettingsAvailable) {
@@ -874,8 +874,8 @@ private fun SettingsSectionCard(
 
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = DarkGreySurface,
-        border = BorderStroke(1.dp, DarkGreyBorder),
+        color = ProxymaTheme.colors.cardSurface, // Заменено
+        border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder), // Заменено
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -888,11 +888,11 @@ private fun SettingsSectionCard(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                                Text(
+                Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
+                    color = ProxymaTheme.colors.textPrimary, // Заменено
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
@@ -902,13 +902,13 @@ private fun SettingsSectionCard(
                     modifier = Modifier
                         .size(32.dp)
                         .clip(RoundedCornerShape(8.dp))
-                        .background(DarkGreySurfaceElevated),
+                        .background(ProxymaTheme.colors.bgBottom), // Заменено
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.ExpandMore,
                         contentDescription = null,
-                        tint = AccentBlue,
+                        tint = ProxymaTheme.colors.accentCyan, // Заменено
                         modifier = Modifier
                             .size(20.dp)
                             .rotate(arrowRotation)
@@ -927,7 +927,7 @@ private fun SettingsSectionCard(
                         .padding(bottom = 8.dp)
                 ) {
                     HorizontalDivider(
-                        color = DarkGreyBorder,
+                        color = ProxymaTheme.colors.cardBorder, // Заменено
                         thickness = 1.dp,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                     )
@@ -953,8 +953,8 @@ private fun ActionPillButton(
         shape = RoundedCornerShape(12.dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = DarkGreySurfaceElevated,
-            contentColor = TextPrimary
+            containerColor = ProxymaTheme.colors.bgBottom, // Заменено
+            contentColor = ProxymaTheme.colors.textPrimary // Заменено
         )
     ) {
         Row(
@@ -964,7 +964,7 @@ private fun ActionPillButton(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = AccentBlue,
+                tint = ProxymaTheme.colors.accentCyan, // Заменено
                 modifier = Modifier.size(22.dp)
             )
             Spacer(modifier = Modifier.width(12.dp))
@@ -973,13 +973,13 @@ private fun ActionPillButton(
                     text = title,
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Medium,
-                    color = TextPrimary
+                    color = ProxymaTheme.colors.textPrimary // Заменено
                 )
                 if (!subtitle.isNullOrBlank()) {
                     Text(
                         text = subtitle,
                         style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary
+                        color = ProxymaTheme.colors.textSecondary // Заменено
                     )
                 }
             }
