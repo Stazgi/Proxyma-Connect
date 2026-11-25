@@ -7,10 +7,11 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.getValue // <-- ДОБАВЛЕНО
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import com.v2ray.ang.AppConfig
-import com.v2ray.ang.handler.MmkvManager
+import com.v2ray.ang.handler.MmkvManager.rememberMmkvString // <-- ДОБАВЛЕНО
 
 data class ProxymaPalette(
     val isDark: Boolean,
@@ -60,7 +61,10 @@ private val LightProxymaPalette = ProxymaPalette(
 @Composable
 fun rememberProxymaColors(): ProxymaPalette {
     val systemDark = isSystemInDarkTheme()
-    val uiMode = MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT) ?: "0"
+    
+    // ИСПОЛЬЗУЕМ rememberMmkvString ВМЕСТО decodeSettingsString
+    val uiMode by rememberMmkvString(AppConfig.PREF_UI_MODE_NIGHT, "0")
+    
     val isDark = when (uiMode) {
         "1" -> false
         "2" -> true
