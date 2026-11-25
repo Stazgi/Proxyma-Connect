@@ -353,7 +353,7 @@ Scaffold(
                 }
             )
             
-    SettingsListItem(
+SettingsListItem(
     title = stringResource(R.string.title_pref_ui_mode_night),
     entries = uiModeNightEntries,
     values = uiModeNightValues,
@@ -861,7 +861,7 @@ private fun QuickModeAndActionsBar(
             }
         }
     }
-}
+} // <--- ВОТ ЭТУ СКОБКУ ВЫ ЗАБЫЛИ ПОСТАВИТЬ!
 
 @Composable
 private fun SettingsSectionCard(
