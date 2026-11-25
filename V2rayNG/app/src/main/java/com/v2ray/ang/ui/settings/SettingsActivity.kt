@@ -739,20 +739,20 @@ SettingsSectionCard(
                     value = ipApiUrl,
                     onValueChanged = { ipApiUrl = it }
                 )
-                SettingsSwitchItem(
-                    title = stringResource(R.string.title_pref_root_mode_enable),
-                    summary = stringResource(R.string.summary_pref_root_mode_enable),
-                    checked = enableRootMode,
-                    enabled = RootManager.isRootAvailable(),
-                    onCheckedChange = { enableRootMode = it }
-                )
-                SettingsSwitchItem(
-                    title = stringResource(R.string.title_pref_root_lan_sharing),
-                    summary = stringResource(R.string.summary_pref_root_lan_sharing),
-                    checked = lanSharing,
-                    enabled = enableRootMode,
-                    onCheckedChange = { lanSharing = it }
-                )
+    SettingsSwitchItem(
+    title = stringResource(R.string.title_root_mode_enabled),
+    summary = stringResource(R.string.summary_root_mode_enabled),
+    checked = enableRootMode,
+    enabled = RootManager.isRootAvailable(),
+    onCheckedChange = { enableRootMode = it }
+)
+SettingsSwitchItem(
+    title = stringResource(R.string.title_root_lan_sharing),
+    summary = stringResource(R.string.summary_root_lan_sharing),
+    checked = lanSharing,
+    enabled = enableRootMode,
+    onCheckedChange = { lanSharing = it }
+)
             }
         }
     }
