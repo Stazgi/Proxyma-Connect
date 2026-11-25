@@ -1,7 +1,13 @@
 package com.v2ray.ang.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.handler.MmkvManager
@@ -62,14 +68,6 @@ fun rememberProxymaColors(): ProxymaPalette {
     }
     return if (isDark) DarkProxymaPalette else LightProxymaPalette
 }
-// Добавьте эти импорты в начало файла
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.staticCompositionLocalOf
-import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.ui.graphics.Color
 
 // 1. Создаем глобальный провайдер (Local)
 val LocalProxymaColors = staticCompositionLocalOf<ProxymaPalette> {
