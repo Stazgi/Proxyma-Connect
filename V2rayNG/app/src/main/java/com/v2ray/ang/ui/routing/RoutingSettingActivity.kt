@@ -12,6 +12,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Block
+import androidx.compose.material.icons.rounded.HomeWork
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Security
+import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -19,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -51,10 +59,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
+import java.util.UUID
 
 private val AccentIndigo = Color(0xFF6366F1)
 private val ConnectedGreen = Color(0xFF10B981)
 private val BlockRed = Color(0xFFEF4444)
+
+private const val QUICK_TAG_LAN = "proxyma_quick_lan"
+private const val QUICK_TAG_RU = "proxyma_quick_ru"
+private const val QUICK_TAG_ADS = "proxyma_quick_ads"
 
 private enum class RoutingMenuAction(@StringRes val labelRes: Int) {
     ImportPredefined(R.string.routing_settings_import_predefined_rulesets),
@@ -79,7 +92,8 @@ class RoutingSettingActivity : HelperBaseComponentActivity() {
         super.onCreate(savedInstanceState)
         domainStrategyState.value = getDomainStrategy()
     }
-        @Composable
+
+    @Composable
     override fun ScreenContent() {
         RoutingSettingScreen(
             viewModel = viewModel,
@@ -172,33 +186,82 @@ class RoutingSettingActivity : HelperBaseComponentActivity() {
         }
     }
 }
-private fun formatRuleTitle(raw: String?): String {
-    val name = raw?.trim().orEmpty()
-    if (name.isEmpty()) return "Правило маршрутизации"
-    return when {
-        name.contains("udp443", ignoreCase = true) -> "Блокировка QUIC (UDP 443)"
-        name.contains("代理Google") -> "Сервисы Google"
-        name.contains("绕过局域网IP") -> "Локальная сеть (IP)"
-        name.contains("绕过局域网域名") -> "Локальные домены"
-        name.contains("绕过中国公共DNSIP") -> "Публичные DNS (IP)"
-        name.contains("绕过中国公共DNS域名") -> "Публичные DNS (Домены)"
-        name.contains("绕过中国IP") -> "Региональные IP (CN)"
-        name.contains("绕过中国域名") -> "Региональные домены (CN)"
-        name.contains("绕过大陆") -> "Региональный трафик (CN)"
-        name.contains("屏蔽广告") || name.contains("广告") -> "Блокировка рекламы"
-        else -> name
+private fun formatStrategyTitle(strategy: String): String {
+    return when (strategy) {
+        "AsIs" -> "По адресу сайта (Быстро)"
+        "IPIfNonMatch" -> "Умная проверка (Домен + IP)"
+        "IPOnDemand" -> "Глубокая проверка (Всегда IP)"
+        else -> strategy
     }
 }
 
 private fun formatStrategyDesc(strategy: String): String {
     return when (strategy) {
-        "AsIs" -> "Проверять только доменные имена без DNS-запросов (быстрее всего)"
-        "IPIfNonMatch" -> "Если домен не совпал с правилами — проверять по IP-адресу"
-        "IPOnDemand" -> "Сразу определять IP-адрес домена для точной фильтрации"
-        else -> "Режим обработки доменов при маршрутизации трафика"
+        "AsIs" -> "Проверять только доменное имя без DNS-запросов — максимальная скорость открытия страниц"
+        "IPIfNonMatch" -> "Если домен не совпал с правилами — узнать его IP-адрес и проверить по базе стран"
+        "IPOnDemand" -> "Сразу определять IP-адрес каждого сайта для максимально точной фильтрации"
+        else -> "Режим проверки адресов при распределении трафика"
     }
 }
 
+private fun formatRuleTitle(raw: String?): String {
+    val name = raw?.trim().orEmpty()
+    if (name.isEmpty()) return "Правило маршрутизации"
+    return when {
+        name == QUICK_TAG_LAN || name.contains("绕过局域网") -> "Локальная сеть напрямую"
+        name == QUICK_TAG_RU -> "Сайты .ru, .рф и .su напрямую"
+        name == QUICK_TAG_ADS || name.contains("屏蔽广告") || name.contains("广告") -> "Блокировка рекламы и трекеров"
+        name.contains("udp443", ignoreCase = true) -> "Ускорение YouTube (Блокировка QUIC)"
+        name.contains("代理Google") -> "Сервисы Google через VPN"
+        name.contains("绕过中国公共DNS") -> "Публичные DNS-серверы напрямую"
+        name.contains("绕过中国IP") || name.contains("绕过中国域名") || name.contains("绕过大陆") -> "Региональный трафик (CN)"
+        else -> name
+    }
+}
+
+private fun formatRuleSummary(ruleset: RulesetItem): String {
+    val name = ruleset.remarks?.trim().orEmpty()
+    return when {
+        name == QUICK_TAG_LAN -> "Роутер, принтеры, телевизоры и устройства в домашней сети"
+        name == QUICK_TAG_RU -> "Российские сайты, банки и госсервисы работают без VPN"
+        name == QUICK_TAG_ADS -> "Вырезает рекламные баннеры и счётчики слежки"
+        name.contains("udp443", ignoreCase = true) -> "Заставляет видеохостинги работать по стабильному TCP"
+        name.contains("绕过局域网") -> "Домашние и локальные IP-адреса"
+        name.contains("绕过中国") || name.contains("绕过大陆") -> "Системное правило региональных адресов"
+        else -> {
+            val parts = buildList {
+                ruleset.domain?.takeIf { it.isNotEmpty() }?.let { add(it.joinToString(", ")) }
+                ruleset.ip?.takeIf { it.isNotEmpty() }?.let { add(it.joinToString(", ")) }
+                ruleset.process?.takeIf { it.isNotEmpty() }?.let { add("Приложения: ${it.joinToString(", ")}") }
+                ruleset.port?.takeIf { it.isNotBlank() }?.let { add("Порты: $it") }
+            }
+            parts.joinToString(" • ").ifEmpty { "Любой трафик" }
+        }
+    }
+}
+
+private fun isLanRule(item: RulesetItem): Boolean {
+    return item.remarks == QUICK_TAG_LAN ||
+        item.domain?.any { it.contains("geosite:private") } == true ||
+        item.ip?.any { it.contains("geoip:private") } == true
+}
+
+private fun isRuRule(item: RulesetItem): Boolean {
+    return item.remarks == QUICK_TAG_RU ||
+        item.domain?.any { it.contains("category-ru") || it == "domain:.ru" } == true
+}
+
+private fun isAdsRule(item: RulesetItem): Boolean {
+    return item.remarks == QUICK_TAG_ADS ||
+        item.domain?.any { it.contains("category-ads") } == true
+}
+
+private fun isCustomUserRule(item: RulesetItem): Boolean {
+    val r = item.remarks.orEmpty()
+    if (r == QUICK_TAG_LAN || r == QUICK_TAG_RU || r == QUICK_TAG_ADS) return false
+    if (r.contains("udp443", ignoreCase = true) || r.contains("绕过") || r.contains("屏蔽") || r.contains("代理Google")) return false
+    return true
+}
 @Composable
 fun RoutingSettingScreen(
     viewModel: RoutingSettingsViewModel,
@@ -217,6 +280,7 @@ fun RoutingSettingScreen(
     var showMenu by remember { mutableStateOf(false) }
     var showPresetDialog by remember { mutableStateOf(false) }
     var showStrategyDialog by remember { mutableStateOf(false) }
+    var quickAddOutbound by remember { mutableStateOf<String?>(null) }
 
     val domainStrategies = stringArrayResource(R.array.routing_domain_strategy).toList()
     val lazyListState = rememberLazyListState()
@@ -226,7 +290,79 @@ fun RoutingSettingScreen(
         viewModel.move(fromIndex, toIndex)
     }
 
-    Box(
+    val lanEnabled = rulesets.any { isLanRule(it) && it.enabled == true }
+    val ruEnabled = rulesets.any { isRuRule(it) && it.enabled == true }
+    val adsEnabled = rulesets.any { isAdsRule(it) && it.enabled == true }
+
+    fun toggleQuickRule(
+        matcher: (RulesetItem) -> Boolean,
+        enable: Boolean,
+        builder: () -> RulesetItem
+    ) {
+        val current = MmkvManager.decodeRoutingRulesets()?.toMutableList() ?: mutableListOf()
+        val matchedIndices = current.mapIndexedNotNull { idx, item -> if (matcher(item)) idx else null }
+        if (matchedIndices.isNotEmpty()) {
+            matchedIndices.forEach { idx ->
+                current[idx] = current[idx].copy(enabled = enable)
+            }
+        } else if (enable) {
+            current.add(0, builder())
+        }
+        MmkvManager.encodeRoutingRulesets(current)
+        viewModel.reload()
+    }
+
+    fun addQuickDomainRule(rawInput: String, tag: String) {
+        val items = rawInput.split(",", "\n", " ")
+            .map { it.trim().removePrefix("https://").removePrefix("http://").trimEnd('/') }
+            .filter { it.isNotEmpty() }
+        if (items.isEmpty()) return
+
+        val domains = mutableListOf<String>()
+        val ips = mutableListOf<String>()
+        val ipRegex = Regex("""^\d{1,3}(\.\d{1,3}){3}(/\d{1,2})?$""")
+        items.forEach { entry ->
+            if (ipRegex.matches(entry) || entry.contains(":")) {
+                ips.add(entry)
+            } else {
+                domains.add(entry)
+            }
+        }
+
+        val current = MmkvManager.decodeRoutingRulesets()?.toMutableList() ?: mutableListOf()
+        val titlePrefix = when (tag) {
+            "direct" -> "Напрямую"
+            "block" -> "Блокировать"
+            else -> "Через VPN"
+        }
+        val newRule = RulesetItem(
+            id = UUID.randomUUID().toString(),
+            remarks = "$titlePrefix: ${items.take(2).joinToString(", ")}",
+            domain = domains.takeIf { it.isNotEmpty() },
+            ip = ips.takeIf { it.isNotEmpty() },
+            outboundTag = tag,
+            enabled = true,
+            locked = true
+        )
+        current.add(0, newRule)
+        MmkvManager.encodeRoutingRulesets(current)
+        viewModel.reload()
+    }
+
+    fun deleteRuleById(id: String) {
+        val current = MmkvManager.decodeRoutingRulesets()?.toMutableList() ?: mutableListOf()
+        val idx = current.indexOfFirst { it.id == id }
+        if (idx >= 0) {
+            current.removeAt(idx)
+            MmkvManager.encodeRoutingRulesets(current)
+            viewModel.reload()
+        }
+    }
+
+    val directCustomRules = rulesets.filter { isCustomUserRule(it) && it.outboundTag.equals("direct", true) }
+    val proxyCustomRules = rulesets.filter { isCustomUserRule(it) && it.outboundTag.equals("proxy", true) }
+    val blockCustomRules = rulesets.filter { isCustomUserRule(it) && it.outboundTag.equals("block", true) }
+        Box(
         modifier = Modifier
             .fillMaxSize()
             .background(
@@ -261,7 +397,7 @@ fun RoutingSettingScreen(
                             fontWeight = FontWeight.Bold
                         )
                         Text(
-                            text = "Правила распределения трафика",
+                            text = "Какие сайты идут через VPN, а какие напрямую",
                             color = ProxymaTheme.colors.accentCyan,
                             fontSize = 11.sp
                         )
@@ -272,7 +408,7 @@ fun RoutingSettingScreen(
                     IconButton(onClick = onAddRule) {
                         Icon(
                             painter = painterResource(R.drawable.ic_add_24dp),
-                            contentDescription = stringResource(R.string.acc_add_rule),
+                            contentDescription = "Создать правило вручную",
                             tint = ProxymaTheme.colors.accentCyan
                         )
                     }
@@ -302,7 +438,8 @@ fun RoutingSettingScreen(
                     }
                 }
             }
-                        LazyColumn(
+
+            LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
                     .fillMaxSize()
@@ -311,6 +448,153 @@ fun RoutingSettingScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = NavigationBarsBottomPadding()
             ) {
+                item(key = "quick_header") {
+                    Text(
+                        text = "Быстрые настройки",
+                        color = ProxymaTheme.colors.textPrimary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 4.dp, bottom = 2.dp)
+                    )
+                }
+
+                item(key = "quick_switches") {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(18.dp),
+                        color = ProxymaTheme.colors.cardSurface,
+                        border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
+                    ) {
+                        Column {
+                            QuickToggleRow(
+                                icon = Icons.Rounded.HomeWork,
+                                title = "Локальная сеть напрямую",
+                                subtitle = "Роутер, принтеры, телевизоры и другие устройства дома",
+                                checked = lanEnabled,
+                                onCheckedChange = { enabled ->
+                                    toggleQuickRule(::isLanRule, enabled) {
+                                        RulesetItem(
+                                            id = UUID.randomUUID().toString(),
+                                            remarks = QUICK_TAG_LAN,
+                                            domain = listOf("geosite:private"),
+                                            ip = listOf("geoip:private"),
+                                            outboundTag = "direct",
+                                            enabled = true,
+                                            locked = true
+                                        )
+                                    }
+                                }
+                            )
+                            HorizontalDivider(
+                                color = ProxymaTheme.colors.cardBorder,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                            QuickToggleRow(
+                                icon = Icons.Rounded.Public,
+                                title = "Сайты .ru, .рф и .su напрямую",
+                                subtitle = "Эти сайты будут видеть ваш настоящий адрес (банки, Госуслуги)",
+                                checked = ruEnabled,
+                                onCheckedChange = { enabled ->
+                                    toggleQuickRule(::isRuRule, enabled) {
+                                        RulesetItem(
+                                            id = UUID.randomUUID().toString(),
+                                            remarks = QUICK_TAG_RU,
+                                            domain = listOf(
+                                                "geosite:category-ru",
+                                                "domain:.ru",
+                                                "domain:.рф",
+                                                "domain:.su"
+                                            ),
+                                            ip = listOf("geoip:ru"),
+                                            outboundTag = "direct",
+                                            enabled = true,
+                                            locked = true
+                                        )
+                                    }
+                                }
+                            )
+                            HorizontalDivider(
+                                color = ProxymaTheme.colors.cardBorder,
+                                modifier = Modifier.padding(horizontal = 16.dp)
+                            )
+                            QuickToggleRow(
+                                icon = Icons.Rounded.Security,
+                                title = "Блокировка рекламы",
+                                subtitle = "Вырезает рекламные баннеры и трекеры в приложениях",
+                                checked = adsEnabled,
+                                onCheckedChange = { enabled ->
+                                    toggleQuickRule(::isAdsRule, enabled) {
+                                        RulesetItem(
+                                            id = UUID.randomUUID().toString(),
+                                            remarks = QUICK_TAG_ADS,
+                                            domain = listOf("geosite:category-ads-all"),
+                                            outboundTag = "block",
+                                            enabled = true,
+                                            locked = true
+                                        )
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
+                                item(key = "custom_direct") {
+                    CustomCategoryCard(
+                        icon = Icons.Rounded.Language,
+                        title = "Напрямую",
+                        subtitle = "Без VPN",
+                        accentColor = ConnectedGreen,
+                        rules = directCustomRules,
+                        onAddClick = { quickAddOutbound = "direct" },
+                        onDeleteRule = { deleteRuleById(it) },
+                        onEditRule = { rule ->
+                            val idx = rulesets.indexOfFirst { it.id == rule.id }
+                            if (idx >= 0) onEditRule(idx)
+                        }
+                    )
+                }
+
+                item(key = "custom_proxy") {
+                    CustomCategoryCard(
+                        icon = Icons.Rounded.Shield,
+                        title = "Через VPN",
+                        subtitle = "Даже если другие правила отправляют их напрямую",
+                        accentColor = ProxymaTheme.colors.accentCyan,
+                        rules = proxyCustomRules,
+                        onAddClick = { quickAddOutbound = "proxy" },
+                        onDeleteRule = { deleteRuleById(it) },
+                        onEditRule = { rule ->
+                            val idx = rulesets.indexOfFirst { it.id == rule.id }
+                            if (idx >= 0) onEditRule(idx)
+                        }
+                    )
+                }
+
+                item(key = "custom_block") {
+                    CustomCategoryCard(
+                        icon = Icons.Rounded.Block,
+                        title = "Блокировать",
+                        subtitle = "Эти сайты и адреса не будут открываться",
+                        accentColor = BlockRed,
+                        rules = blockCustomRules,
+                        onAddClick = { quickAddOutbound = "block" },
+                        onDeleteRule = { deleteRuleById(it) },
+                        onEditRule = { rule ->
+                            val idx = rulesets.indexOfFirst { it.id == rule.id }
+                            if (idx >= 0) onEditRule(idx)
+                        }
+                    )
+                }
+                                item(key = "strategy_header") {
+                    Text(
+                        text = "Дополнительные параметры маршрутизации",
+                        color = ProxymaTheme.colors.textPrimary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
+                    )
+                }
+
                 item(key = "domain_strategy") {
                     Surface(
                         modifier = Modifier
@@ -321,40 +605,39 @@ fun RoutingSettingScreen(
                         color = ProxymaTheme.colors.cardSurface,
                         border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
                     ) {
-                        Row(
-                            modifier = Modifier.padding(16.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text = "Доменная стратегия",
-                                    color = ProxymaTheme.colors.textPrimary,
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = formatStrategyDesc(domainStrategy),
-                                    color = ProxymaTheme.colors.textSecondary,
-                                    fontSize = 12.sp,
-                                    lineHeight = 16.sp
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Surface(
-                                shape = RoundedCornerShape(10.dp),
-                                color = AccentIndigo.copy(alpha = 0.2f),
-                                border = BorderStroke(1.dp, AccentIndigo)
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = domainStrategy,
+                                    text = "Режим проверки сайтов",
+                                    color = ProxymaTheme.colors.textSecondary,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "Изменить ›",
                                     color = ProxymaTheme.colors.accentCyan,
                                     fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Text(
+                                text = formatStrategyTitle(domainStrategy),
+                                color = ProxymaTheme.colors.textPrimary,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = formatStrategyDesc(domainStrategy),
+                                color = ProxymaTheme.colors.textSecondary,
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp
+                            )
                         }
                     }
                 }
@@ -368,13 +651,13 @@ fun RoutingSettingScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Активные правила (${rulesets.count { it.enabled == true }} из ${rulesets.size})",
+                            text = "Все правила ядра (${rulesets.count { it.enabled == true }} из ${rulesets.size})",
                             color = ProxymaTheme.colors.textPrimary,
                             fontSize = 14.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                         Text(
-                            text = "Нажмите ✎ для правки",
+                            text = "Порядок важен • ✎ правка",
                             color = ProxymaTheme.colors.textSecondary,
                             fontSize = 11.sp
                         )
@@ -400,11 +683,23 @@ fun RoutingSettingScreen(
             }
         }
     }
-        if (showStrategyDialog) {
+
+    if (quickAddOutbound != null) {
+        QuickAddSiteDialog(
+            outboundTag = quickAddOutbound!!,
+            onDismiss = { quickAddOutbound = null },
+            onConfirm = { input ->
+                addQuickDomainRule(input, quickAddOutbound!!)
+                quickAddOutbound = null
+            }
+        )
+    }
+
+    if (showStrategyDialog) {
         SelectListDialog(
-            title = "Доменная стратегия",
+            title = "Режим проверки сайтов",
             options = domainStrategies,
-            optionText = { it },
+            optionText = { "${formatStrategyTitle(it)} — ${formatStrategyDesc(it)}" },
             onSelected = { selected ->
                 showStrategyDialog = false
                 onDomainStrategySelected(selected)
@@ -415,7 +710,7 @@ fun RoutingSettingScreen(
 
     if (showPresetDialog) {
         SelectListDialog(
-            title = stringResource(R.string.routing_settings_import_predefined_rulesets),
+            title = "Загрузить готовый набор правил",
             options = RoutingPreset.entries,
             optionText = { stringResource(it.labelRes) },
             onSelected = { preset ->
@@ -425,6 +720,248 @@ fun RoutingSettingScreen(
             onDismiss = { showPresetDialog = false }
         )
     }
+}
+@Composable
+private fun QuickToggleRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onCheckedChange(!checked) }
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = ProxymaTheme.colors.accentCyan,
+            modifier = Modifier.size(22.dp)
+        )
+        Spacer(modifier = Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                color = ProxymaTheme.colors.textPrimary,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                color = ProxymaTheme.colors.textSecondary,
+                fontSize = 12.sp,
+                lineHeight = 16.sp
+            )
+        }
+        Spacer(modifier = Modifier.width(10.dp))
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color.White,
+                checkedTrackColor = AccentIndigo,
+                uncheckedThumbColor = ProxymaTheme.colors.textSecondary,
+                uncheckedTrackColor = ProxymaTheme.colors.bgTop
+            )
+        )
+    }
+}
+
+@Composable
+private fun CustomCategoryCard(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    accentColor: Color,
+    rules: List<RulesetItem>,
+    onAddClick: () -> Unit,
+    onDeleteRule: (String) -> Unit,
+    onEditRule: (RulesetItem) -> Unit
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(18.dp),
+        color = ProxymaTheme.colors.cardSurface,
+        border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = accentColor,
+                        modifier = Modifier.size(22.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = "$title · ${rules.size}",
+                            color = ProxymaTheme.colors.textPrimary,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = subtitle,
+                            color = ProxymaTheme.colors.textSecondary,
+                            fontSize = 12.sp,
+                            lineHeight = 15.sp
+                        )
+                    }
+                }
+                TextButton(
+                    onClick = onAddClick,
+                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "+ Добавить",
+                        color = ProxymaTheme.colors.accentCyan,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            if (rules.isEmpty()) {
+                Text(
+                    text = "Пока пусто",
+                    color = ProxymaTheme.colors.textSecondary.copy(alpha = 0.7f),
+                    fontSize = 13.sp,
+                    modifier = Modifier.padding(start = 34.dp)
+                )
+            } else {
+                Column(
+                    modifier = Modifier.padding(start = 34.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    rules.forEach { rule ->
+                        val itemsText = (rule.domain.orEmpty() + rule.ip.orEmpty())
+                            .joinToString(", ")
+                            .ifEmpty { rule.remarks.orEmpty() }
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(10.dp))
+                                .clickable { onEditRule(rule) },
+                            shape = RoundedCornerShape(10.dp),
+                            color = ProxymaTheme.colors.bgTop.copy(alpha = 0.7f),
+                            border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = itemsText,
+                                    color = ProxymaTheme.colors.textPrimary,
+                                    fontSize = 13.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                IconButton(
+                                    onClick = { onDeleteRule(rule.id) },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Text(
+                                        text = "✕",
+                                        color = ProxymaTheme.colors.textSecondary,
+                                        fontSize = 13.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickAddSiteDialog(
+    outboundTag: String,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var inputText by remember { mutableStateOf("") }
+    val title = when (outboundTag) {
+        "direct" -> "Добавить сайт напрямую (Без VPN)"
+        "block" -> "Заблокировать сайт или IP"
+        else -> "Добавить сайт через VPN"
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = ProxymaTheme.colors.cardSurface,
+        title = {
+            Text(
+                text = title,
+                color = ProxymaTheme.colors.textPrimary,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    text = "Введите адрес сайта (например, ozon.ru) или IP-адрес. Можно указать несколько через запятую:",
+                    color = ProxymaTheme.colors.textSecondary,
+                    fontSize = 13.sp
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = inputText,
+                    onValueChange = { inputText = it },
+                    singleLine = true,
+                    placeholder = {
+                        Text(
+                            "example.com, 192.168.1.1",
+                            color = ProxymaTheme.colors.textSecondary.copy(alpha = 0.6f),
+                            fontSize = 13.sp
+                        )
+                    },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = ProxymaTheme.colors.textPrimary,
+                        unfocusedTextColor = ProxymaTheme.colors.textPrimary,
+                        focusedBorderColor = ProxymaTheme.colors.accentCyan,
+                        unfocusedBorderColor = ProxymaTheme.colors.cardBorder,
+                        cursorColor = ProxymaTheme.colors.accentCyan
+                    )
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(inputText) },
+                enabled = inputText.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = AccentIndigo)
+            ) {
+                Text("Добавить", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Отмена", color = ProxymaTheme.colors.textSecondary)
+            }
+        }
+    )
 }
 @Composable
 private fun RoutingRulesetCard(
@@ -488,17 +1025,14 @@ private fun RoutingRulesetCard(
                     }
                 }
 
-                val domainIpInfo = (ruleset.domain ?: ruleset.ip ?: ruleset.process ?: ruleset.port)?.toString() ?: ""
-                if (domainIpInfo.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = domainIpInfo,
-                        color = ProxymaTheme.colors.textSecondary,
-                        fontSize = 11.sp,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = formatRuleSummary(ruleset),
+                    color = ProxymaTheme.colors.textSecondary,
+                    fontSize = 12.sp,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
 
                 if (tagLabel.isNotEmpty()) {
                     Spacer(modifier = Modifier.height(6.dp))
