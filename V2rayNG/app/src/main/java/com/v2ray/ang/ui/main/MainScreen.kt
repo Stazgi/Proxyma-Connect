@@ -90,7 +90,7 @@ private fun fetchSubscription(
             val infoMap = userInfoHeader.split(";")
                 .mapNotNull { part ->
                     val kv = part.trim().split("=")
-                    if (kv.size == 2) kv.lowercase() to (kv.toLongOrNull() ?: 0L) else null
+                    if (kv.size == 2) kv[0].lowercase() to (kv[1].toLongOrNull() ?: 0L) else null
                 }.toMap()
             val usedBytes = (infoMap["upload"] ?: 0L) + (infoMap["download"] ?: 0L)
             val totalBytes = infoMap["total"] ?: 0L
