@@ -62,3 +62,62 @@ fun rememberProxymaColors(): ProxymaPalette {
     }
     return if (isDark) DarkProxymaPalette else LightProxymaPalette
 }
+// Добавьте эти импорты в начало файла
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.ReadOnlyComposable
+import androidx.compose.ui.graphics.Color
+
+// 1. Создаем глобальный провайдер (Local)
+val LocalProxymaColors = staticCompositionLocalOf<ProxymaPalette> {
+    error("No ProxymaPalette provided")
+}
+
+// 2. Создаем объект для удобного доступа (как MaterialTheme, только ваш)
+object ProxymaTheme {
+    val colors: ProxymaPalette
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalProxymaColors.current
+}
+
+// 3. Функция-обертка (Theme Wrapper)
+@Composable
+fun ProxymaThemeWrapper(
+    content: @Composable () -> Unit
+) {
+    val palette = rememberProxymaColors()
+
+    // Связываем вашу палитру с MaterialTheme, чтобы стандартные компоненты (Switch, TextField) подхватили цвета
+    val colorScheme = if (palette.isDark) {
+        darkColorScheme(
+            primary = palette.accentCyan,
+            background = palette.bgTop,
+            surface = palette.cardSurface,
+            onPrimary = palette.bgTop,
+            onBackground = palette.textPrimary,
+            onSurface = palette.textPrimary,
+            outline = palette.cardBorder
+        )
+    } else {
+        lightColorScheme(
+            primary = palette.accentCyan,
+            background = palette.bgTop,
+            surface = palette.cardSurface,
+            onPrimary = Color.White,
+            onBackground = palette.textPrimary,
+            onSurface = palette.textPrimary,
+            outline = palette.cardBorder
+        )
+    }
+
+    CompositionLocalProvider(LocalProxymaColors provides palette) {
+        MaterialTheme(
+            colorScheme = colorScheme,
+            content = content
+        )
+    }
+}
