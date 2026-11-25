@@ -28,20 +28,19 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.v2ray.ang.R
 import com.v2ray.ang.handler.AngConfigManager
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsManager
 import com.v2ray.ang.ui.ScannerActivity
+import com.v2ray.ang.ui.theme.ProxymaTheme
 import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -54,21 +53,11 @@ import java.util.Locale
 import javax.net.ssl.HttpsURLConnection
 
 private val PROXYMA_SUB_BASE_URL = com.v2ray.ang.BuildConfig.SUB_BASE_URL
-private const val TELEGRAM_BOT_URL = "https://t.me/ProxymaVPN_robot?start=app_login"
-private const val PRIVACY_POLICY_URL = "https://github.com/Stazgi/Proxyma-Connect/blob/master/PRIVACY.md"
+private const val TELEGRAM_BOT_URL = "https://t.me"
+private const val PRIVACY_POLICY_URL = "https://github.com"
 
-private val BgDarkTop = Color(0xFF0B0F19)
-private val BgDarkBottom = Color(0xFF131B2E)
-private val CardSurface = Color(0xFF1A233A)
-private val CardBorder = Color(0xFF2B395C)
-private val AccentCyan = Color(0xFF00E5FF)
 private val AccentIndigo = Color(0xFF6366F1)
 private val ConnectedGreen = Color(0xFF10B981)
-private val TextPrimary = Color(0xFFF8FAFC)
-private val TextSecondary = Color(0xFF94A3B8)
-
-// Вынесено из activateKey: чистая функция без замыканий.
-// Соединение гарантированно закрывается через finally.
 private fun fetchSubscription(
     url: String,
     deviceHwid: String,
@@ -80,14 +69,12 @@ private fun fetchSubscription(
         connection.connectTimeout = 10_000
         connection.readTimeout = 10_000
         connection.setRequestProperty("User-Agent", "v2rayNG/1.9.0")
-        // Просим gzip и обрабатываем его сами (раньше identity + ветка GZIP были несовместимы).
         connection.setRequestProperty("Accept-Encoding", "gzip")
         connection.setRequestProperty("X-HWID", deviceHwid)
         connection.setRequestProperty("X-Device-Model", deviceModel)
         connection.setRequestProperty("X-Device-OS", "Android")
         connection.setRequestProperty("X-Ver-OS", osVersion)
 
-        // Открываем поток до чтения contentEncoding — иначе header может быть ещё null.
         val inputStream = connection.inputStream
         val contentEncoding = connection.contentEncoding
         val userInfoHeader = connection.getHeaderField("Subscription-Userinfo").orEmpty()
@@ -103,7 +90,7 @@ private fun fetchSubscription(
             val infoMap = userInfoHeader.split(";")
                 .mapNotNull { part ->
                     val kv = part.trim().split("=")
-                    if (kv.size == 2) kv[0].lowercase() to (kv[1].toLongOrNull() ?: 0L) else null
+                    if (kv.size == 2) kv.lowercase() to (kv.toLongOrNull() ?: 0L) else null
                 }.toMap()
             val usedBytes = (infoMap["upload"] ?: 0L) + (infoMap["download"] ?: 0L)
             val totalBytes = infoMap["total"] ?: 0L
@@ -150,7 +137,6 @@ private fun fetchSubscription(
         connection.disconnect()
     }
 }
-
 @Composable
 fun MainScreen(
     mainViewModel: MainViewModel,
@@ -171,16 +157,6 @@ fun MainScreen(
     val isRunning = uiState.isRunning
     val selectedGuid = uiState.selectedGuid
     val statusText = mainViewModel.formatStatus(uiState.status)
-
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as? Activity)?.window
-            if (window != null) {
-                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
-            }
-        }
-    }
 
     LaunchedEffect(servers, selectedGuid) {
         if (servers.isNotEmpty() && (selectedGuid.isNullOrEmpty() || servers.none { it.guid == selectedGuid })) {
@@ -211,7 +187,6 @@ fun MainScreen(
         if (cleanKey.isEmpty()) return
         MmkvManager.encodeSettings("proxyma_last_key", cleanKey)
 
-        // Фиксируем группу до запуска корутины, иначе пользователь может её переключить во время загрузки.
         val targetGroupId = uiState.selectedGroupId
 
         scope.launch(Dispatchers.IO) {
@@ -221,7 +196,6 @@ fun MainScreen(
                 } else {
                     val subId = cleanKey.take(16)
                     if (subId == cleanKey) {
-                        // Короткий ключ: фолбэк на тот же URL не имеет смысла — делаем один запрос.
                         fetchSubscription("$PROXYMA_SUB_BASE_URL$cleanKey", deviceHwid, deviceModel, osVersion)
                     } else {
                         try {
@@ -284,8 +258,7 @@ fun MainScreen(
             }
         }
     }
-
-    val activity = context as? MainActivity
+        val activity = context as? MainActivity
     val incomingKey = activity?.incomingAuthKey?.value
     LaunchedEffect(incomingKey) {
         if (!incomingKey.isNullOrEmpty()) {
@@ -355,7 +328,11 @@ fun MainScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(BgDarkTop, BgDarkBottom)))
+                .background(
+                    Brush.verticalGradient(
+                        listOf(ProxymaTheme.colors.bgTop, ProxymaTheme.colors.bgBottom)
+                    )
+                )
                 .systemBarsPadding()
         ) {
             Column(
@@ -374,7 +351,11 @@ fun MainScreen(
                             modifier = Modifier
                                 .size(38.dp)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Brush.linearGradient(listOf(AccentCyan, AccentIndigo))),
+                                .background(
+                                    Brush.linearGradient(
+                                        listOf(ProxymaTheme.colors.accentCyan, AccentIndigo)
+                                    )
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -388,13 +369,13 @@ fun MainScreen(
                         Column {
                             Text(
                                 text = "Proxyma Connect",
-                                color = TextPrimary,
+                                color = ProxymaTheme.colors.textPrimary,
                                 fontSize = 19.sp,
                                 fontWeight = FontWeight.Bold
                             )
                             Text(
                                 text = "Защищённый туннель",
-                                color = AccentCyan,
+                                color = ProxymaTheme.colors.accentCyan,
                                 fontSize = 11.sp,
                                 fontWeight = FontWeight.Medium
                             )
@@ -406,20 +387,19 @@ fun MainScreen(
                             Icon(
                                 painter = painterResource(R.drawable.ic_add_24dp),
                                 contentDescription = "Ключ доступа",
-                                tint = TextPrimary
+                                tint = ProxymaTheme.colors.textPrimary
                             )
                         }
                         IconButton(onClick = { scope.launch { drawerState.open() } }) {
                             Icon(
                                 painter = painterResource(R.drawable.ic_menu_24dp),
                                 contentDescription = "Меню",
-                                tint = TextSecondary
+                                tint = ProxymaTheme.colors.textSecondary
                             )
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(16.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
 
                 if (servers.isEmpty() && !isLoading) {
                     EmptyActivationCard(
@@ -477,7 +457,7 @@ fun MainScreen(
                     ) {
                         Text(
                             text = "Доступные локации (${servers.size})",
-                            color = TextPrimary,
+                            color = ProxymaTheme.colors.textPrimary,
                             fontSize = 15.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -487,7 +467,7 @@ fun MainScreen(
                         ) {
                             Text(
                                 text = "⚡ Проверить пинг",
-                                color = AccentCyan,
+                                color = ProxymaTheme.colors.accentCyan,
                                 fontSize = 13.sp,
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -518,7 +498,6 @@ fun MainScreen(
         }
     }
 }
-
 @Composable
 private fun SubscriptionStatusCard(
     groupRemarks: String?,
@@ -535,8 +514,8 @@ private fun SubscriptionStatusCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(18.dp),
-        color = CardSurface,
-        border = BorderStroke(1.dp, CardBorder)
+        color = ProxymaTheme.colors.cardSurface,
+        border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
     ) {
         Row(
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
@@ -546,7 +525,7 @@ private fun SubscriptionStatusCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    color = TextPrimary,
+                    color = ProxymaTheme.colors.textPrimary,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -556,27 +535,25 @@ private fun SubscriptionStatusCard(
                     .ifBlank { "Ключ активен • Нажмите ↻ для обновления" }
                 Text(
                     text = subInfo,
-                    color = AccentCyan,
+                    color = ProxymaTheme.colors.accentCyan,
                     fontSize = 12.sp,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
             }
 
-            // Кнопки — сосед Column в общем Row (раньше Row был вложен в Column
-            // и не хватало закрывающей скобки).
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (isLoading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(22.dp),
-                        color = AccentCyan,
+                        color = ProxymaTheme.colors.accentCyan,
                         strokeWidth = 2.dp
                     )
                 } else {
                     IconButton(onClick = onRefresh) {
                         Text(
                             text = "↻",
-                            color = AccentCyan,
+                            color = ProxymaTheme.colors.accentCyan,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -594,7 +571,6 @@ private fun SubscriptionStatusCard(
         }
     }
 }
-
 @Composable
 private fun EmptyActivationCard(
     onScanQr: () -> Unit,
@@ -612,8 +588,8 @@ private fun EmptyActivationCard(
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
-            color = CardSurface,
-            border = BorderStroke(1.dp, CardBorder)
+            color = ProxymaTheme.colors.cardSurface,
+            border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
         ) {
             Column(
                 modifier = Modifier.padding(24.dp),
@@ -623,14 +599,14 @@ private fun EmptyActivationCard(
                 Spacer(modifier = Modifier.height(12.dp))
                 Text(
                     text = "Активация доступа",
-                    color = TextPrimary,
+                    color = ProxymaTheme.colors.textPrimary,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = "Получите ключ в Telegram-боте, вставьте из буфера или отсканируйте QR-код",
-                    color = TextSecondary,
+                    color = ProxymaTheme.colors.textSecondary,
                     fontSize = 13.sp,
                     textAlign = TextAlign.Center
                 )
@@ -642,11 +618,11 @@ private fun EmptyActivationCard(
                         .fillMaxWidth()
                         .height(48.dp),
                     shape = RoundedCornerShape(14.dp),
-                    border = BorderStroke(1.dp, AccentCyan)
+                    border = BorderStroke(1.dp, ProxymaTheme.colors.accentCyan)
                 ) {
                     Text(
                         text = "✈ Войти через Telegram",
-                        color = AccentCyan,
+                        color = ProxymaTheme.colors.accentCyan,
                         fontSize = 15.sp,
                         fontWeight = FontWeight.SemiBold
                     )
@@ -658,15 +634,21 @@ private fun EmptyActivationCard(
                     value = inputKey,
                     onValueChange = { inputKey = it },
                     modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Введите ключ доступа (UUID)", color = TextSecondary, fontSize = 13.sp) },
+                    placeholder = {
+                        Text(
+                            "Введите ключ доступа (UUID)",
+                            color = ProxymaTheme.colors.textSecondary,
+                            fontSize = 13.sp
+                        )
+                    },
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        focusedBorderColor = AccentCyan,
-                        unfocusedBorderColor = CardBorder,
-                        cursorColor = AccentCyan
+                        focusedTextColor = ProxymaTheme.colors.textPrimary,
+                        unfocusedTextColor = ProxymaTheme.colors.textPrimary,
+                        focusedBorderColor = ProxymaTheme.colors.accentCyan,
+                        unfocusedBorderColor = ProxymaTheme.colors.cardBorder,
+                        cursorColor = ProxymaTheme.colors.accentCyan
                     )
                 )
 
@@ -680,7 +662,7 @@ private fun EmptyActivationCard(
                     TextButton(
                         onClick = { clipboard.getText()?.text?.let { inputKey = it.trim() } }
                     ) {
-                        Text("Из буфера", color = AccentCyan, fontSize = 13.sp)
+                        Text("Из буфера", color = ProxymaTheme.colors.accentCyan, fontSize = 13.sp)
                     }
                     TextButton(
                         onClick = onScanQr
@@ -689,11 +671,11 @@ private fun EmptyActivationCard(
                             Icon(
                                 painter = painterResource(R.drawable.ic_scan_24dp),
                                 contentDescription = "Сканировать QR",
-                                tint = AccentCyan,
+                                tint = ProxymaTheme.colors.accentCyan,
                                 modifier = Modifier.size(18.dp)
                             )
                             Spacer(modifier = Modifier.width(6.dp))
-                            Text("Сканировать QR", color = AccentCyan, fontSize = 13.sp)
+                            Text("Сканировать QR", color = ProxymaTheme.colors.accentCyan, fontSize = 13.sp)
                         }
                     }
                 }
@@ -723,7 +705,7 @@ private fun EmptyActivationCard(
                 ) {
                     Text(
                         text = "Политика конфиденциальности",
-                        color = TextSecondary,
+                        color = ProxymaTheme.colors.textSecondary,
                         fontSize = 12.sp
                     )
                 }
@@ -731,7 +713,6 @@ private fun EmptyActivationCard(
         }
     }
 }
-
 @Composable
 private fun PowerConnectButton(
     isRunning: Boolean,
@@ -772,13 +753,16 @@ private fun PowerConnectButton(
                     .clip(CircleShape)
                     .clickable { onToggle() },
                 shape = CircleShape,
-                color = if (isRunning) ConnectedGreen else CardSurface,
+                color = if (isRunning) ConnectedGreen else ProxymaTheme.colors.cardSurface,
                 border = BorderStroke(3.dp, ringColor),
                 shadowElevation = 12.dp
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     if (isLoading) {
-                        CircularProgressIndicator(color = Color.White, modifier = Modifier.size(42.dp))
+                        CircularProgressIndicator(
+                            color = if (isRunning) Color.White else ProxymaTheme.colors.accentCyan,
+                            modifier = Modifier.size(42.dp)
+                        )
                     } else if (isRunning) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_proxyma_mono),
@@ -789,7 +773,7 @@ private fun PowerConnectButton(
                     } else {
                         Text(
                             text = "Выкл",
-                            color = Color.White,
+                            color = ProxymaTheme.colors.textPrimary,
                             fontSize = 26.sp,
                             fontWeight = FontWeight.ExtraBold,
                             letterSpacing = 2.sp
@@ -803,7 +787,7 @@ private fun PowerConnectButton(
 
         Text(
             text = if (isRunning) "ЗАЩИТА ВКЛЮЧЕНА" else "НЕ ПОДКЛЮЧЕНО",
-            color = if (isRunning) ConnectedGreen else TextSecondary,
+            color = if (isRunning) ConnectedGreen else ProxymaTheme.colors.textSecondary,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             letterSpacing = 1.sp
@@ -820,14 +804,13 @@ private fun PowerConnectButton(
         ) {
             Text(
                 text = if (isRunning) "⚡ $statusText" else statusText,
-                color = TextSecondary,
+                color = ProxymaTheme.colors.textSecondary,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
             )
         }
     }
 }
-
 @Composable
 private fun ServerLocationCard(
     name: String,
@@ -842,10 +825,14 @@ private fun ServerLocationCard(
             .clip(RoundedCornerShape(16.dp))
             .clickable { onClick() },
         shape = RoundedCornerShape(16.dp),
-        color = if (isSelected) CardSurface.copy(alpha = 0.95f) else CardSurface.copy(alpha = 0.55f),
+        color = if (isSelected) {
+            ProxymaTheme.colors.cardSurface
+        } else {
+            ProxymaTheme.colors.cardSurface.copy(alpha = 0.65f)
+        },
         border = BorderStroke(
             width = if (isSelected) 1.5.dp else 1.dp,
-            color = if (isSelected) AccentCyan else CardBorder
+            color = if (isSelected) ProxymaTheme.colors.accentCyan else ProxymaTheme.colors.cardBorder
         )
     ) {
         Row(
@@ -856,7 +843,7 @@ private fun ServerLocationCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = name,
-                    color = TextPrimary,
+                    color = ProxymaTheme.colors.textPrimary,
                     fontSize = 15.sp,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1,
@@ -865,7 +852,7 @@ private fun ServerLocationCard(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = if (delayMillis > 0) "Пинг: ${delayMillis} мс" else "Протокол $protocol",
-                    color = if (delayMillis > 0) ConnectedGreen else TextSecondary,
+                    color = if (delayMillis > 0) ConnectedGreen else ProxymaTheme.colors.textSecondary,
                     fontSize = 12.sp
                 )
             }
@@ -873,7 +860,7 @@ private fun ServerLocationCard(
             if (isSelected) {
                 Text(
                     text = "✓",
-                    color = AccentCyan,
+                    color = ProxymaTheme.colors.accentCyan,
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
@@ -894,15 +881,19 @@ private fun KeyInputDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = CardSurface,
+        containerColor = ProxymaTheme.colors.cardSurface,
         title = {
-            Text("Сменить ключ доступа", color = TextPrimary, fontWeight = FontWeight.Bold)
+            Text(
+                "Сменить ключ доступа",
+                color = ProxymaTheme.colors.textPrimary,
+                fontWeight = FontWeight.Bold
+            )
         },
         text = {
             Column {
                 Text(
                     "Вставьте новый ключ (UUID) из Telegram-бота или отсканируйте QR-код:",
-                    color = TextSecondary,
+                    color = ProxymaTheme.colors.textSecondary,
                     fontSize = 13.sp
                 )
                 Spacer(modifier = Modifier.height(12.dp))
@@ -910,12 +901,18 @@ private fun KeyInputDialog(
                     value = keyText,
                     onValueChange = { keyText = it },
                     singleLine = true,
-                    placeholder = { Text("ce348496-200d-...", color = TextSecondary, fontSize = 12.sp) },
+                    placeholder = {
+                        Text(
+                            "ce348496-200d-...",
+                            color = ProxymaTheme.colors.textSecondary,
+                            fontSize = 12.sp
+                        )
+                    },
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        focusedBorderColor = AccentCyan,
-                        unfocusedBorderColor = CardBorder
+                        focusedTextColor = ProxymaTheme.colors.textPrimary,
+                        unfocusedTextColor = ProxymaTheme.colors.textPrimary,
+                        focusedBorderColor = ProxymaTheme.colors.accentCyan,
+                        unfocusedBorderColor = ProxymaTheme.colors.cardBorder
                     )
                 )
                 Spacer(modifier = Modifier.height(4.dp))
@@ -928,7 +925,7 @@ private fun KeyInputDialog(
                         onClick = { clipboard.getText()?.text?.let { keyText = it.trim() } },
                         contentPadding = PaddingValues(horizontal = 4.dp)
                     ) {
-                        Text("Из буфера", color = AccentCyan, fontSize = 12.sp)
+                        Text("Из буфера", color = ProxymaTheme.colors.accentCyan, fontSize = 12.sp)
                     }
                     TextButton(
                         onClick = onScanQr,
@@ -938,11 +935,11 @@ private fun KeyInputDialog(
                             Icon(
                                 painter = painterResource(R.drawable.ic_scan_24dp),
                                 contentDescription = "Сканировать QR",
-                                tint = AccentCyan,
+                                tint = ProxymaTheme.colors.accentCyan,
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Сканировать QR", color = AccentCyan, fontSize = 12.sp)
+                            Text("Сканировать QR", color = ProxymaTheme.colors.accentCyan, fontSize = 12.sp)
                         }
                     }
                 }
@@ -959,12 +956,11 @@ private fun KeyInputDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Отмена", color = TextSecondary)
+                Text("Отмена", color = ProxymaTheme.colors.textSecondary)
             }
         }
     )
 }
-
 @Composable
 private fun VpnDisclosureDialog(
     onAccept: () -> Unit,
@@ -973,11 +969,11 @@ private fun VpnDisclosureDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDecline,
-        containerColor = CardSurface,
+        containerColor = ProxymaTheme.colors.cardSurface,
         title = {
             Text(
                 text = "VPN-подключение и ваши данные",
-                color = TextPrimary,
+                color = ProxymaTheme.colors.textPrimary,
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp
             )
@@ -986,13 +982,13 @@ private fun VpnDisclosureDialog(
             Column {
                 Text(
                     text = "Proxyma Connect использует системный интерфейс Android VpnService для создания зашифрованного туннеля и защиты вашего интернет-трафика.",
-                    color = TextPrimary,
+                    color = ProxymaTheme.colors.textPrimary,
                     fontSize = 13.sp
                 )
                 Spacer(modifier = Modifier.height(10.dp))
                 Text(
                     text = "• Для авторизации ключа и привязки устройства на сервер передаются идентификатор устройства (Android ID), модель и версия ОС.\n• Мы не ведем журналы вашей сетевой активности и не передаем данные третьим лицам.",
-                    color = TextSecondary,
+                    color = ProxymaTheme.colors.textSecondary,
                     fontSize = 12.sp
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -1002,7 +998,7 @@ private fun VpnDisclosureDialog(
                 ) {
                     Text(
                         text = "Открыть Политику конфиденциальности",
-                        color = AccentCyan,
+                        color = ProxymaTheme.colors.accentCyan,
                         fontSize = 12.sp
                     )
                 }
@@ -1015,10 +1011,10 @@ private fun VpnDisclosureDialog(
             ) {
                 Text("Согласен", color = Color.White, fontWeight = FontWeight.Bold)
             }
-             },
+        },
         dismissButton = {
             TextButton(onClick = onDecline) {
-                Text("Отказаться", color = TextSecondary)
+                Text("Отказаться", color = ProxymaTheme.colors.textSecondary)
             }
         }
     )
