@@ -49,7 +49,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -90,36 +89,10 @@ import com.v2ray.ang.ui.compose.SettingsListItem
 import com.v2ray.ang.ui.compose.SettingsSwitchItem
 import com.v2ray.ang.ui.compose.ThemeManager
 import com.v2ray.ang.ui.compose.verticalScrollbar
+import com.v2ray.ang.ui.theme.ProxymaTheme // <--- ДОБАВЛЕН ИМПОРТ ТЕМЫ
 import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.launch
-
-private val DarkGreyBackground = Color(0xFF121316)
-private val DarkGreySurface = Color(0xFF1B1D22)
-private val DarkGreySurfaceElevated = Color(0xFF252830)
-private val DarkGreyBorder = Color(0xFF2F333D)
-private val AccentBlue = Color(0xFF5C9DFF)
-private val TextPrimary = Color(0xFFECEEF2)
-private val TextSecondary = Color(0xFF9AA0AE)
-
-private val DarkGreyColorScheme = darkColorScheme(
-    primary = AccentBlue,
-    onPrimary = Color(0xFF0A192F),
-    primaryContainer = Color(0xFF1F3557),
-    onPrimaryContainer = Color(0xFFD6E4FF),
-    secondary = Color(0xFF8E99B0),
-    onSecondary = Color(0xFF161920),
-    secondaryContainer = DarkGreySurfaceElevated,
-    onSecondaryContainer = TextPrimary,
-    background = DarkGreyBackground,
-    onBackground = TextPrimary,
-    surface = DarkGreySurface,
-    onSurface = TextPrimary,
-    surfaceVariant = DarkGreySurfaceElevated,
-    onSurfaceVariant = TextSecondary,
-    outline = DarkGreyBorder,
-    outlineVariant = Color(0xFF262932)
-)
 
 class SettingsActivity : BaseComponentActivity() {
 
@@ -155,14 +128,13 @@ class SettingsActivity : BaseComponentActivity() {
 
     @Composable
     override fun ScreenContent() {
-        MaterialTheme(colorScheme = DarkGreyColorScheme) {
-            SettingsScreen(
-                viewModel = viewModel,
-                onBackClick = { finish() },
-                onModeHelpClicked = { Utils.openUri(this, AppConfig.APP_WIKI_MODE) },
-                onSystemVpnSettingsClicked = ::openSystemVpnSettings
-            )
-        }
+        // Убрали обертку MaterialTheme
+        SettingsScreen(
+            viewModel = viewModel,
+            onBackClick = { finish() },
+            onModeHelpClicked = { Utils.openUri(this, AppConfig.APP_WIKI_MODE) },
+            onSystemVpnSettingsClicked = ::openSystemVpnSettings
+        )
     }
 }
 
@@ -186,7 +158,10 @@ fun SettingsScreen(
     var observatorySettingsExpanded by rememberSaveable { mutableStateOf(false) }
     var advancedSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var modeSettingsExpanded by rememberSaveable { mutableStateOf(true) }
+    
+    // --- ДАЛЬШЕ ИДУТ ВАШИ НАСТРОЙКИ MMKV (var localDns ... и т.д.) ---
     var localDns by rememberMmkvBool(AppConfig.PREF_LOCAL_DNS_ENABLED, false)
+    // ... (остальные переменные без изменений)
 var fakeDns by rememberMmkvBool(AppConfig.PREF_FAKE_DNS_ENABLED, false)
 var appendHttpProxy by rememberMmkvBool(AppConfig.PREF_APPEND_HTTP_PROXY, false)
 var vpnDns by rememberMmkvString(AppConfig.PREF_VPN_DNS, "")
@@ -290,7 +265,7 @@ val observatoryLeastLoadMethodValues = stringArrayResource(R.array.observatory_l
 val modeEntries = stringArrayResource(R.array.mode_entries).toList()
 val modeValues = stringArrayResource(R.array.mode_value).toList()
 Scaffold(
-    containerColor = DarkGreyBackground,
+    containerColor = ProxymaTheme.colors.bgTop, // <-- Заменили DarkGreyBackground
     contentWindowInsets = WindowInsets(0),
     topBar = {
         AppTopBar(
@@ -303,7 +278,7 @@ Scaffold(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(DarkGreyBackground)
+            .background(ProxymaTheme.colors.bgTop) // <-- Заменили DarkGreyBackground
             .padding(innerPadding)
             .verticalScrollbar(scrollState)
             .verticalScroll(scrollState)
