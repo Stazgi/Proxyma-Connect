@@ -36,10 +36,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.HelpOutline
+import androidx.compose.material.icons.automirrored.rounded.Send
+import androidx.compose.material.icons.rounded.AltRoute
+import androidx.compose.material.icons.rounded.Apps
+import androidx.compose.material.icons.rounded.Campaign
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.SupportAgent
 import androidx.compose.material.icons.rounded.VpnKey
+import androidx.compose.material.icons.rounded.WifiTethering
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -69,12 +77,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.AppConfig.VPN
+import com.v2ray.ang.BuildConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.extension.toastError
 import com.v2ray.ang.handler.AppLocaleManager
@@ -83,6 +93,8 @@ import com.v2ray.ang.handler.MmkvManager.rememberMmkvBool
 import com.v2ray.ang.handler.MmkvManager.rememberMmkvString
 import com.v2ray.ang.handler.SettingsChangeManager
 import com.v2ray.ang.root.RootManager
+import com.v2ray.ang.ui.AboutActivity
+import com.v2ray.ang.ui.LanSharingActivity
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.NavigationBarsSpacer
@@ -91,12 +103,17 @@ import com.v2ray.ang.ui.compose.SettingsListItem
 import com.v2ray.ang.ui.compose.SettingsSwitchItem
 import com.v2ray.ang.ui.compose.ThemeManager
 import com.v2ray.ang.ui.compose.verticalScrollbar
+import com.v2ray.ang.ui.perappproxy.PerAppProxyActivity
+import com.v2ray.ang.ui.routing.RoutingSettingActivity
 import com.v2ray.ang.ui.theme.ProxymaTheme
 import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.launch
 
 private const val PREF_DEV_MODE_ENABLED = "proxyma_dev_mode_enabled"
+private const val TELEGRAM_BOT_URL = "https://t.me"
+private const val TELEGRAM_CHANNEL_URL = "https://t.me"
+private const val TELEGRAM_SUPPORT_URL = "https://t.me"
 
 class SettingsActivity : BaseComponentActivity() {
 
@@ -131,6 +148,10 @@ class SettingsActivity : BaseComponentActivity() {
         SettingsScreen(
             viewModel = viewModel,
             onBackClick = { finish() },
+            onOpenRouting = { startActivity(Intent(this, RoutingSettingActivity::class.java)) },
+            onOpenPerAppProxy = { startActivity(Intent(this, PerAppProxyActivity::class.java)) },
+            onOpenLanSharing = { startActivity(Intent(this, LanSharingActivity::class.java)) },
+            onOpenAbout = { startActivity(Intent(this, AboutActivity::class.java)) },
             onModeHelpClicked = { Utils.openUri(this, AppConfig.APP_WIKI_MODE) },
             onSystemVpnSettingsClicked = ::openSystemVpnSettings,
             onThemeChanged = { recreate() }
@@ -142,6 +163,10 @@ class SettingsActivity : BaseComponentActivity() {
 fun SettingsScreen(
     viewModel: SettingsViewModel,
     onBackClick: () -> Unit,
+    onOpenRouting: () -> Unit,
+    onOpenPerAppProxy: () -> Unit,
+    onOpenLanSharing: () -> Unit,
+    onOpenAbout: () -> Unit,
     onModeHelpClicked: () -> Unit,
     onSystemVpnSettingsClicked: () -> Unit,
     onThemeChanged: () -> Unit
@@ -154,6 +179,17 @@ fun SettingsScreen(
     var devModeEnabled by rememberMmkvBool(PREF_DEV_MODE_ENABLED, false)
     var tapCount by remember { mutableIntStateOf(0) }
     var lastTapTime by remember { mutableLongStateOf(0L) }
+
+    fun handleDevTap() {
+        val now = System.currentTimeMillis()
+        tapCount = if (now - lastTapTime < 1500L) tapCount + 1 else 1
+        lastTapTime = now
+        if (tapCount >= 5 && !devModeEnabled) {
+            tapCount = 0
+            devModeEnabled = true
+            Toast.makeText(context, "Режим разработчика включён", Toast.LENGTH_SHORT).show()
+        }
+    }
 
     var uiSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var vpnSettingsExpanded by rememberSaveable { mutableStateOf(true) }
@@ -273,21 +309,9 @@ fun SettingsScreen(
             Box(
                 modifier = Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
-                    indication = null
-                ) {
-                    val now = System.currentTimeMillis()
-                    if (now - lastTapTime < 1500L) {
-                        tapCount++
-                    } else {
-                        tapCount = 1
-                    }
-                    lastTapTime = now
-                    if (tapCount >= 5 && !devModeEnabled) {
-                        tapCount = 0
-                        devModeEnabled = true
-                        Toast.makeText(context, "Режим разработчика включён", Toast.LENGTH_SHORT).show()
-                    }
-                }
+                    indication = null,
+                    onClick = ::handleDevTap
+                )
             ) {
                 AppTopBar(
                     title = stringResource(R.string.title_settings),
@@ -317,19 +341,53 @@ fun SettingsScreen(
                     onSystemVpnSettingsClicked = onSystemVpnSettingsClicked,
                     onModeHelpClicked = onModeHelpClicked
                 )
-            } else if (systemVpnSettingsAvailable) {
-                Surface(
-                    shape = RoundedCornerShape(16.dp),
-                    color = ProxymaTheme.colors.cardSurface,
-                    border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    ActionPillButton(
-                        title = stringResource(R.string.title_system_vpn_settings),
-                        subtitle = "Постоянный VPN и системные параметры Android",
-                        icon = Icons.Rounded.VpnKey,
-                        onClick = onSystemVpnSettingsClicked
+            }
+
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = ProxymaTheme.colors.cardSurface,
+                border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    NavActionRow(
+                        icon = Icons.Rounded.AltRoute,
+                        title = "Маршрутизация",
+                        subtitle = "Сайты .ru напрямую, локальная сеть и исключения",
+                        onClick = onOpenRouting
                     )
+                    HorizontalDivider(
+                        color = ProxymaTheme.colors.cardBorder,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    NavActionRow(
+                        icon = Icons.Rounded.Apps,
+                        title = "Выбор приложений",
+                        subtitle = "Какие приложения работают без VPN или через VPN",
+                        onClick = onOpenPerAppProxy
+                    )
+                    HorizontalDivider(
+                        color = ProxymaTheme.colors.cardBorder,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    NavActionRow(
+                        icon = Icons.Rounded.WifiTethering,
+                        title = "Раздача интернета",
+                        subtitle = if (proxySharing) "Включено • Общий доступ по Wi-Fi и точке доступа" else "Поделиться VPN с ПК, ноутбуком или телевизором",
+                        onClick = onOpenLanSharing
+                    )
+                    if (systemVpnSettingsAvailable && !devModeEnabled) {
+                        HorizontalDivider(
+                            color = ProxymaTheme.colors.cardBorder,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                        NavActionRow(
+                            icon = Icons.Rounded.VpnKey,
+                            title = stringResource(R.string.title_system_vpn_settings),
+                            subtitle = "Постоянный VPN (Always-on) в настройках Android",
+                            onClick = onSystemVpnSettingsClicked
+                        )
+                    }
                 }
             }
                         SettingsSectionCard(
@@ -502,7 +560,52 @@ fun SettingsScreen(
                     )
                 }
             }
-                        if (devModeEnabled) {
+                        Surface(
+                shape = RoundedCornerShape(16.dp),
+                color = ProxymaTheme.colors.cardSurface,
+                border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    NavActionRow(
+                        icon = Icons.AutoMirrored.Rounded.Send,
+                        title = "Наш Telegram-бот",
+                        subtitle = "Управление подпиской, ключами и пополнение",
+                        onClick = { Utils.openUri(context, TELEGRAM_BOT_URL) }
+                    )
+                    HorizontalDivider(
+                        color = ProxymaTheme.colors.cardBorder,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    NavActionRow(
+                        icon = Icons.Rounded.Campaign,
+                        title = "Канал и новости",
+                        subtitle = "Обновления серверов и важные объявления",
+                        onClick = { Utils.openUri(context, TELEGRAM_CHANNEL_URL) }
+                    )
+                    HorizontalDivider(
+                        color = ProxymaTheme.colors.cardBorder,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    NavActionRow(
+                        icon = Icons.Rounded.SupportAgent,
+                        title = "Поддержка",
+                        subtitle = "Помощь по настройке и работе сервиса",
+                        onClick = { Utils.openUri(context, TELEGRAM_SUPPORT_URL) }
+                    )
+                    HorizontalDivider(
+                        color = ProxymaTheme.colors.cardBorder,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    NavActionRow(
+                        icon = Icons.Rounded.Info,
+                        title = "О приложении и лицензии",
+                        subtitle = "Версия ${BuildConfig.VERSION_NAME} • Информация о ядре",
+                        onClick = onOpenAbout
+                    )
+                }
+          }
+                       if (devModeEnabled) {
                 SettingsSectionCard(
                     title = stringResource(R.string.title_core_settings),
                     expanded = coreSettingsExpanded,
@@ -795,6 +898,59 @@ fun SettingsScreen(
         }
     }
 }
+@Composable
+private fun NavActionRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(ProxymaTheme.colors.bgBottom),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = ProxymaTheme.colors.accentCyan,
+                modifier = Modifier.size(20.dp)
+            )
+        }
+        Spacer(modifier = Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                color = ProxymaTheme.colors.textPrimary,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = subtitle,
+                color = ProxymaTheme.colors.textSecondary,
+                fontSize = 12.sp,
+                lineHeight = 16.sp
+            )
+        }
+        Icon(
+            imageVector = Icons.Rounded.ChevronRight,
+            contentDescription = null,
+            tint = ProxymaTheme.colors.textSecondary,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
 @Composable
 private fun QuickModeAndActionsBar(
     modeEntries: List<String>,
