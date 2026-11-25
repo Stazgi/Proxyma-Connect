@@ -23,18 +23,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.v2ray.ang.R
 import com.v2ray.ang.ui.compose.verticalScrollbar
+import com.v2ray.ang.ui.theme.ProxymaTheme
 import com.v2ray.ang.util.Utils
 
-private const val TELEGRAM_BOT_URL = "https://t.me/ProxymaVPN_robot"
-private const val TELEGRAM_CHANNEL_URL = "https://t.me/ProxymaVPN_Channel"
-private const val TELEGRAM_SUPPORT_URL = "https://t.me/ProxymaVPN_support_bot"
+private const val TELEGRAM_BOT_URL = "https://t.me"
+private const val TELEGRAM_CHANNEL_URL = "https://t.me"
+private const val TELEGRAM_SUPPORT_URL = "https://t.me"
 
-private val DrawerBg = Color(0xFF0E1424)
-private val HeaderCardBg = Color(0xFF1A233A)
-private val AccentCyan = Color(0xFF00E5FF)
 private val AccentIndigo = Color(0xFF6366F1)
-private val TextPrimary = Color(0xFFF8FAFC)
-private val TextSecondary = Color(0xFF94A3B8)
 
 enum class MainDestination(@DrawableRes val iconRes: Int, @StringRes val labelRes: Int) {
     Subscriptions(R.drawable.ic_subscriptions_24dp, R.string.title_sub_setting),
@@ -64,7 +60,7 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
     ModalDrawerSheet(
         drawerState = drawerState,
         modifier = Modifier.fillMaxWidth(0.78f),
-        drawerContainerColor = DrawerBg
+        drawerContainerColor = ProxymaTheme.colors.bgTop
     ) {
         Column(
             modifier = Modifier
@@ -76,7 +72,8 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
             Surface(
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(20.dp),
-                color = HeaderCardBg
+                color = ProxymaTheme.colors.cardSurface,
+                border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
             ) {
                 Column(
                     modifier = Modifier.padding(20.dp),
@@ -86,7 +83,11 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
                         modifier = Modifier
                             .size(64.dp)
                             .clip(RoundedCornerShape(18.dp))
-                            .background(Brush.linearGradient(listOf(AccentCyan, AccentIndigo))),
+                            .background(
+                                Brush.linearGradient(
+                                    listOf(ProxymaTheme.colors.accentCyan, AccentIndigo)
+                                )
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
@@ -99,14 +100,14 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "Proxyma Connect",
-                        color = TextPrimary,
+                        color = ProxymaTheme.colors.textPrimary,
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "Безопасный и быстрый VPN",
-                        color = AccentCyan,
+                        color = ProxymaTheme.colors.accentCyan,
                         fontSize = 12.sp
                     )
                 }
@@ -119,7 +120,7 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
                     label = {
                         Text(
                             text = stringResource(item.labelRes),
-                            color = TextPrimary,
+                            color = ProxymaTheme.colors.textPrimary,
                             fontSize = 15.sp
                         )
                     },
@@ -129,7 +130,7 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
                         Icon(
                             painter = painterResource(item.iconRes),
                             contentDescription = null,
-                            tint = AccentCyan
+                            tint = ProxymaTheme.colors.accentCyan
                         )
                     },
                     colors = NavigationDrawerItemDefaults.colors(
@@ -140,7 +141,7 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-            HorizontalDivider(color = HeaderCardBg)
+            HorizontalDivider(color = ProxymaTheme.colors.cardBorder)
             Spacer(modifier = Modifier.height(16.dp))
 
             OutlinedButton(
@@ -149,11 +150,11 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
                     .fillMaxWidth()
                     .height(46.dp),
                 shape = RoundedCornerShape(14.dp),
-                border = BorderStroke(1.dp, AccentCyan)
+                border = BorderStroke(1.dp, ProxymaTheme.colors.accentCyan)
             ) {
                 Text(
                     text = "✈ Наш Telegram-бот",
-                    color = AccentCyan,
+                    color = ProxymaTheme.colors.accentCyan,
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -172,12 +173,14 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
                         .height(42.dp),
                     shape = RoundedCornerShape(12.dp),
                     contentPadding = PaddingValues(horizontal = 8.dp),
-                    border = BorderStroke(1.dp, HeaderCardBg),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = HeaderCardBg.copy(alpha = 0.6f))
+                    border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = ProxymaTheme.colors.cardSurface
+                    )
                 ) {
                     Text(
                         text = "📢 Канал",
-                        color = TextPrimary,
+                        color = ProxymaTheme.colors.textPrimary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -190,12 +193,14 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
                         .height(42.dp),
                     shape = RoundedCornerShape(12.dp),
                     contentPadding = PaddingValues(horizontal = 8.dp),
-                    border = BorderStroke(1.dp, HeaderCardBg),
-                    colors = ButtonDefaults.outlinedButtonColors(containerColor = HeaderCardBg.copy(alpha = 0.6f))
+                    border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = ProxymaTheme.colors.cardSurface
+                    )
                 ) {
                     Text(
                         text = "💬 Поддержка",
-                        color = TextPrimary,
+                        color = ProxymaTheme.colors.textPrimary,
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium
                     )
@@ -206,7 +211,7 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
 
             Text(
                 text = "Proxyma Connect • v${com.v2ray.ang.BuildConfig.VERSION_NAME}",
-                color = TextSecondary,
+                color = ProxymaTheme.colors.textSecondary,
                 fontSize = 11.sp,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
