@@ -352,17 +352,18 @@ Scaffold(
                     AppLocaleManager.setApplicationLanguage(it)
                 }
             )
-            SettingsListItem(
-                title = stringResource(R.string.title_pref_ui_mode_night),
-                entries = uiModeNightEntries,
-                values = uiModeNightValues,
-                selectedValue = uiModeNight,
-                onSelected = {
-                    uiModeNight = it
-                    ThemeManager.setThemeMode(it)
-                }
-            )
-        }
+            
+    SettingsListItem(
+    title = stringResource(R.string.title_pref_ui_mode_night),
+    entries = uiModeNightEntries,
+    values = uiModeNightValues,
+    selectedValue = uiModeNight,
+    onSelected = {
+        uiModeNight = it
+        ThemeManager.setThemeMode(it)
+        onThemeChanged() // <--- ДОБАВЛЕНА ВОТ ЭТА СТРОКА
+    }
+)
 
         SettingsSectionCard(
             title = stringResource(R.string.title_vpn_settings),
