@@ -54,6 +54,7 @@ import javax.net.ssl.HttpsURLConnection
 
 private val PROXYMA_SUB_BASE_URL = com.v2ray.ang.BuildConfig.SUB_BASE_URL
 private const val TELEGRAM_BOT_DEEP_LINK = "tg://resolve?domain=ProxymaVPN_robot&start=app_login"
+private const val TELEGRAM_BOT_URL = "https://t.me/ProxymaVPN_robot"
 private const val PRIVACY_POLICY_URL = "https://github.com/Stazgi/Proxyma-Connect/blob/master/PRIVACY.md"
 
 private val AccentIndigo = Color(0xFF6366F1)
@@ -611,9 +612,18 @@ private fun EmptyActivationCard(
                     textAlign = TextAlign.Center
                 )
                 Spacer(modifier = Modifier.height(18.dp))
-
                 OutlinedButton(
-                    onClick = { Utils.openUri(context, TELEGRAM_BOT_URL) },
+                    onClick = {
+                        try {
+                            val intent = Intent(
+                                Intent.ACTION_VIEW,
+                                android.net.Uri.parse(TELEGRAM_BOT_DEEP_LINK)
+                            )
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            Utils.openUri(context, TELEGRAM_BOT_URL)
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(48.dp),
@@ -627,7 +637,7 @@ private fun EmptyActivationCard(
                         fontWeight = FontWeight.SemiBold
                     )
                 }
-
+                                
                 Spacer(modifier = Modifier.height(14.dp))
 
                 OutlinedTextField(
