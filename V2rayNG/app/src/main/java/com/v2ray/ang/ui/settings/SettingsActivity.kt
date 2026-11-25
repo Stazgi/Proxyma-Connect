@@ -16,7 +16,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -34,29 +33,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AdminPanelSettings
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Dns
-import androidx.compose.material.icons.filled.Palette
-import androidx.compose.material.icons.filled.Science
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.SwapHoriz
-import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.automirrored.rounded.HelpOutline
+import androidx.compose.material.icons.rounded.ExpandMore
+import androidx.compose.material.icons.rounded.Shield
+import androidx.compose.material.icons.rounded.VpnKey
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -73,10 +62,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
@@ -109,42 +94,32 @@ import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.launch
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Улучшенная тёмно-серая палитра (более выраженная иерархия)
-// ─────────────────────────────────────────────────────────────────────────────
-private val DarkGreyBackground      = Color(0xFF0F1115)
-private val DarkGreySurface         = Color(0xFF17191F)
-private val DarkGreySurfaceElevated = Color(0xFF21242C)
-private val DarkGreyBorder          = Color(0xFF2A2E38)
-private val DarkGreyBorderSubtle    = Color(0xFF1F2229)
-
-private val AccentBlue    = Color(0xFF7AB0FF)
-private val AccentBlueDim = Color(0xFF3B6FC7)
-
-private val TextPrimary   = Color(0xFFF3F5F8)
-private val TextSecondary = Color(0xFFA3A9B8)
-private val TextTertiary  = Color(0xFF6E7484)
+private val DarkGreyBackground = Color(0xFF121316)
+private val DarkGreySurface = Color(0xFF1B1D22)
+private val DarkGreySurfaceElevated = Color(0xFF252830)
+private val DarkGreyBorder = Color(0xFF2F333D)
+private val AccentBlue = Color(0xFF5C9DFF)
+private val TextPrimary = Color(0xFFECEEF2)
+private val TextSecondary = Color(0xFF9AA0AE)
 
 private val DarkGreyColorScheme = darkColorScheme(
-    primary               = AccentBlue,
-    onPrimary             = Color(0xFF04101F),
-    primaryContainer      = Color(0xFF1A2A45),
-    onPrimaryContainer    = Color(0xFFDCE9FF),
-    secondary             = Color(0xFF8E99B0),
-    onSecondary           = Color(0xFF12151B),
-    secondaryContainer    = DarkGreySurfaceElevated,
-    onSecondaryContainer  = TextPrimary,
-    background            = DarkGreyBackground,
-    onBackground          = TextPrimary,
-    surface               = DarkGreySurface,
-    onSurface             = TextPrimary,
-    surfaceVariant        = DarkGreySurfaceElevated,
-    onSurfaceVariant      = TextSecondary,
-    outline               = DarkGreyBorder,
-    outlineVariant        = DarkGreyBorderSubtle,
-    error                 = Color(0xFFFF8A8A),
+    primary = AccentBlue,
+    onPrimary = Color(0xFF0A192F),
+    primaryContainer = Color(0xFF1F3557),
+    onPrimaryContainer = Color(0xFFD6E4FF),
+    secondary = Color(0xFF8E99B0),
+    onSecondary = Color(0xFF161920),
+    secondaryContainer = DarkGreySurfaceElevated,
+    onSecondaryContainer = TextPrimary,
+    background = DarkGreyBackground,
+    onBackground = TextPrimary,
+    surface = DarkGreySurface,
+    onSurface = TextPrimary,
+    surfaceVariant = DarkGreySurfaceElevated,
+    onSurfaceVariant = TextSecondary,
+    outline = DarkGreyBorder,
+    outlineVariant = Color(0xFF262932)
 )
-
 class SettingsActivity : BaseComponentActivity() {
 
     private val viewModel: SettingsViewModel by viewModels()
@@ -189,7 +164,6 @@ class SettingsActivity : BaseComponentActivity() {
         }
     }
 }
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
@@ -202,11 +176,6 @@ fun SettingsScreen(
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val systemVpnSettingsAvailable by viewModel.systemVpnSettingsAvailable.collectAsStateWithLifecycle()
 
-    // ── Состояние поиска ────────────────────────────────────────────────────
-    var searchQuery by rememberSaveable { mutableStateOf("") }
-    val query = searchQuery.trim().lowercase()
-
-    // ── Раскрытие секций ────────────────────────────────────────────────────
     var uiSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var vpnSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var coreSettingsExpanded by rememberSaveable { mutableStateOf(true) }
@@ -216,7 +185,6 @@ fun SettingsScreen(
     var advancedSettingsExpanded by rememberSaveable { mutableStateOf(true) }
     var modeSettingsExpanded by rememberSaveable { mutableStateOf(true) }
 
-    // ── MMKV-состояния ──────────────────────────────────────────────────────
     var localDns by rememberMmkvBool(AppConfig.PREF_LOCAL_DNS_ENABLED, false)
     var fakeDns by rememberMmkvBool(AppConfig.PREF_FAKE_DNS_ENABLED, false)
     var appendHttpProxy by rememberMmkvBool(AppConfig.PREF_APPEND_HTTP_PROXY, false)
@@ -262,7 +230,9 @@ fun SettingsScreen(
     var doubleColumnDisplay by rememberMmkvBool(AppConfig.PREF_DOUBLE_COLUMN_DISPLAY, false)
     var groupAllDisplay by rememberMmkvBool(AppConfig.PREF_GROUP_ALL_DISPLAY, false)
     var language by remember {
-        mutableStateOf(MmkvManager.decodeSettingsString(AppConfig.PREF_LANGUAGE, "auto") ?: "auto")
+        mutableStateOf(
+            MmkvManager.decodeSettingsString(AppConfig.PREF_LANGUAGE, "auto") ?: "auto"
+        )
     }
     var uiModeNight by rememberMmkvString(AppConfig.PREF_UI_MODE_NIGHT, "0")
     var dynamicColor by rememberMmkvBool(AppConfig.PREF_DYNAMIC_COLOR, true)
@@ -318,107 +288,7 @@ fun SettingsScreen(
     val observatoryLeastLoadMethodValues = stringArrayResource(R.array.observatory_least_load_method).toList()
     val modeEntries = stringArrayResource(R.array.mode_entries).toList()
     val modeValues = stringArrayResource(R.array.mode_value).toList()
-
-    // ── Хелпер поиска ───────────────────────────────────────────────────────
-    // Возвращает true, если запрос пустой ИЛИ хотя бы одна строка содержит подстроку.
-    fun matches(vararg strings: String): Boolean {
-        if (query.isEmpty()) return true
-        return strings.any { it.lowercase().contains(query) }
-    }
-
-    // Заголовки секций (для поиска по названию секции тоже)
-    val titleUi          = stringResource(R.string.title_ui_settings)
-    val titleVpn         = stringResource(R.string.title_vpn_settings)
-    val titleCore        = stringResource(R.string.title_core_settings)
-    val titleMux         = stringResource(R.string.title_mux_settings)
-    val titleFragment    = stringResource(R.string.title_fragment_settings)
-    val titleObservatory = stringResource(R.string.title_observatory_settings)
-    val titleAdvanced    = stringResource(R.string.title_advanced)
-    val titleMode        = stringResource(R.string.title_mode_settings)
-
-    // Предвычисление совпадений по секциям (нужно и для показа секций, и для «нет результатов»)
-    val uiMatch = matches(
-        titleUi,
-        stringResource(R.string.title_pref_speed_enabled),
-        stringResource(R.string.title_pref_confirm_remove),
-        stringResource(R.string.title_pref_double_column_display),
-        stringResource(R.string.title_pref_group_all_display),
-        stringResource(R.string.title_pref_dynamic_color),
-        stringResource(R.string.title_language),
-        stringResource(R.string.title_pref_ui_mode_night)
-    )
-    val vpnMatch = matches(
-        titleVpn,
-        stringResource(R.string.title_pref_ipv6_enabled),
-        stringResource(R.string.title_pref_prefer_ipv6),
-        stringResource(R.string.title_pref_local_dns_enabled),
-        stringResource(R.string.title_pref_fake_dns_enabled),
-        stringResource(R.string.title_pref_vpn_dns),
-        stringResource(R.string.title_pref_append_http_proxy),
-        stringResource(R.string.title_pref_vpn_bypass_lan),
-        stringResource(R.string.title_pref_vpn_interface_address),
-        stringResource(R.string.title_pref_vpn_mtu),
-        stringResource(R.string.title_pref_use_hev_tunnel),
-        stringResource(R.string.title_pref_hev_tunnel_loglevel),
-        stringResource(R.string.title_pref_hev_tunnel_rw_timeout)
-    )
-    val coreMatch = matches(
-        titleCore,
-        stringResource(R.string.title_pref_sniffing_enabled),
-        stringResource(R.string.title_pref_route_only_enabled),
-        stringResource(R.string.title_pref_enable_local_proxy),
-        stringResource(R.string.title_pref_proxy_sharing_enabled),
-        stringResource(R.string.title_pref_dynamic_socks_port),
-        stringResource(R.string.title_pref_socks_port),
-        stringResource(R.string.title_pref_socks_username),
-        stringResource(R.string.title_pref_socks_password),
-        stringResource(R.string.title_pref_socks_enable_udp),
-        stringResource(R.string.title_pref_remote_dns),
-        stringResource(R.string.title_pref_domestic_dns),
-        stringResource(R.string.title_pref_dns_hosts),
-        stringResource(R.string.title_core_loglevel),
-        stringResource(R.string.title_outbound_domain_resolve_method)
-    )
-    val muxMatch = matches(
-        titleMux,
-        stringResource(R.string.title_pref_mux_enabled),
-        stringResource(R.string.title_pref_mux_concurrency),
-        stringResource(R.string.title_pref_mux_xudp_concurrency),
-        stringResource(R.string.title_pref_mux_xudp_quic)
-    )
-    val fragmentMatch = matches(
-        titleFragment,
-        stringResource(R.string.title_pref_fragment_enabled),
-        stringResource(R.string.title_pref_fragment_packets),
-        stringResource(R.string.title_pref_fragment_length),
-        stringResource(R.string.title_pref_fragment_interval),
-        stringResource(R.string.title_pref_fragment_maxsplit)
-    )
-    val observatoryMatch = matches(
-        titleObservatory,
-        stringResource(R.string.title_pref_observatory_least_ping_interval),
-        stringResource(R.string.title_pref_observatory_least_load_interval),
-        stringResource(R.string.title_pref_observatory_least_load_method),
-        stringResource(R.string.title_pref_observatory_least_load_sampling),
-        stringResource(R.string.title_pref_observatory_least_load_timeout)
-    )
-    val advancedMatch = matches(
-        titleAdvanced,
-        stringResource(R.string.title_pref_is_booted),
-        stringResource(R.string.title_system_vpn_settings),
-        stringResource(R.string.title_pref_delay_test_url),
-        stringResource(R.string.title_pref_real_ping_concurrency),
-        stringResource(R.string.title_pref_ip_api_url)
-    )
-    val modeMatch = matches(
-        titleMode,
-        stringResource(R.string.title_root_mode_enabled),
-        stringResource(R.string.title_root_lan_sharing)
-    )
-    val anyMatch = uiMatch || vpnMatch || coreMatch || muxMatch ||
-            fragmentMatch || observatoryMatch || advancedMatch || modeMatch
-
-    Scaffold(
+        Scaffold(
         containerColor = DarkGreyBackground,
         contentWindowInsets = WindowInsets(0),
         topBar = {
@@ -436,13 +306,9 @@ fun SettingsScreen(
                 .padding(innerPadding)
                 .verticalScrollbar(scrollState)
                 .verticalScroll(scrollState)
-                .padding(horizontal = 12.dp, vertical = 10.dp),
+                .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // ── Поиск ───────────────────────────────────────────────────────
-            SearchBar(query = searchQuery, onQueryChange = { searchQuery = it })
-
-            // ── Быстрый выбор режима + действия ─────────────────────────────
             QuickModeAndActionsBar(
                 modeEntries = modeEntries,
                 modeValues = modeValues,
@@ -453,246 +319,404 @@ fun SettingsScreen(
                 onModeHelpClicked = onModeHelpClicked
             )
 
-            // ── UI ──────────────────────────────────────────────────────────
-            if (uiMatch) {
-                SettingsSectionCard(
-                    title = titleUi,
-                    icon = Icons.Default.Palette,
-                    expanded = uiSettingsExpanded || query.isNotEmpty(),
-                    onExpandedChange = { uiSettingsExpanded = it }
-                ) {
-                    SettingsSwitchItem(stringResource(R.string.title_pref_speed_enabled), stringResource(R.string.summary_pref_speed_enabled), speedEnabled) { speedEnabled = it }
-                    SettingsSwitchItem(stringResource(R.string.title_pref_confirm_remove), stringResource(R.string.summary_pref_confirm_remove), confirmRemove) { confirmRemove = it }
-                    SettingsSwitchItem(stringResource(R.string.title_pref_double_column_display), stringResource(R.string.summary_pref_double_column_display), doubleColumnDisplay) { doubleColumnDisplay = it; SettingsChangeManager.makeSetupGroupTab() }
-                    SettingsSwitchItem(stringResource(R.string.title_pref_group_all_display), stringResource(R.string.summary_pref_group_all_display), groupAllDisplay) { groupAllDisplay = it; SettingsChangeManager.makeSetupGroupTab() }
-                    SettingsSwitchItem(stringResource(R.string.title_pref_dynamic_color), stringResource(R.string.summary_pref_dynamic_color), dynamicColor, enabled = dynamicColorSupported) { dynamicColor = it; ThemeManager.setDynamicColorEnabled(it) }
-                    SettingsListItem(stringResource(R.string.title_language), languageEntries, languageValues, language) { language = it; AppLocaleManager.setApplicationLanguage(it) }
-                    SettingsListItem(stringResource(R.string.title_pref_ui_mode_night), uiModeNightEntries, uiModeNightValues, uiModeNight) { uiModeNight = it; ThemeManager.setThemeMode(it) }
-                }
-            }
-
-            // ── VPN ─────────────────────────────────────────────────────────
-            if (vpnMatch) {
-                SettingsSectionCard(
-                    title = titleVpn,
-                    icon = Icons.Default.Security,
-                    expanded = vpnSettingsExpanded || query.isNotEmpty(),
-                    onExpandedChange = { vpnSettingsExpanded = it }
-                ) {
-                    SettingsSwitchItem(stringResource(R.string.title_pref_ipv6_enabled), stringResource(R.string.summary_pref_ipv6_enabled), ipv6Enabled) { ipv6Enabled = it }
-                    SettingsSwitchItem(stringResource(R.string.title_pref_prefer_ipv6), stringResource(R.string.summary_pref_prefer_ipv6), preferIpv6) { preferIpv6 = it }
-                    SettingsSwitchItem(stringResource(R.string.title_pref_local_dns_enabled), stringResource(R.string.summary_pref_local_dns_enabled), localDns, enabled = isVpn) { localDns = it }
-                    SettingsSwitchItem(stringResource(R.string.title_pref_fake_dns_enabled), stringResource(R.string.summary_pref_fake_dns_enabled), fakeDns, enabled = isVpn && localDns) { fakeDns = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_vpn_dns), vpnDns, enabled = isVpn && !localDns) { vpnDns = it }
-                    SettingsSwitchItem(stringResource(R.string.title_pref_append_http_proxy), stringResource(R.string.summary_pref_append_http_proxy), appendHttpProxy, enabled = effectiveLocalProxy) { appendHttpProxy = it }
-                    SettingsListItem(stringResource(R.string.title_pref_vpn_bypass_lan), bypassLanEntries, bypassLanValues, vpnBypassLan, enabled = isVpn) { vpnBypassLan = it }
-                    SettingsListItem(stringResource(R.string.title_pref_vpn_interface_address), interfaceAddrEntries, interfaceAddrValues, vpnInterfaceAddress, enabled = isVpn) { vpnInterfaceAddress = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_vpn_mtu), vpnMtu, enabled = isVpn, keyboardNumber = true) { vpnMtu = it }
-                    SettingsSwitchItem(stringResource(R.string.title_pref_use_hev_tunnel), stringResource(R.string.summary_pref_use_hev_tunnel), useHevTun, enabled = isVpn) { useHevTun = it; if (it && !enableLocalProxy) enableLocalProxy = true }
-                    SettingsListItem(stringResource(R.string.title_pref_hev_tunnel_loglevel), hevLogEntries, hevLogValues, hevTunLogLevel, enabled = hevTunEnabled) { hevTunLogLevel = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_hev_tunnel_rw_timeout), hevTunRwTimeout, enabled = hevTunEnabled, keyboardNumber = true) { hevTunRwTimeout = it }
-                }
-            }
-
-            // ── Ядро ────────────────────────────────────────────────────────
-            if (coreMatch) {
-                SettingsSectionCard(
-                    title = titleCore,
-                    icon = Icons.Default.Dns,
-                    expanded = coreSettingsExpanded || query.isNotEmpty(),
-                    onExpandedChange = { coreSettingsExpanded = it }
-                ) {
-                    SettingsSwitchItem(stringResource(R.string.title_pref_sniffing_enabled), stringResource(R.string.summary_pref_sniffing_enabled), sniffingEnabled) { sniffingEnabled = it }
-                    SettingsSwitchItem(stringResource(R.string.title_pref_route_only_enabled), stringResource(R.string.summary_pref_route_only_enabled), routeOnlyEnabled) { routeOnlyEnabled = it }
-                    SettingsSwitchItem(stringResource(R.string.title_pref_enable_local_proxy), stringResource(R.string.summary_pref_enable_local_proxy), enableLocalProxy, enabled = !localProxyForced) { if (!localProxyForced) { enableLocalProxy = it; if (!it && appendHttpProxy) appendHttpProxy = false } }
-                    SettingsSwitchItem(stringResource(R.string.title_pref_proxy_sharing_enabled), stringResource(R.string.summary_pref_proxy_sharing_enabled), proxySharing, enabled = effectiveLocalProxy) { proxySharing = it }
-                    SettingsSwitchItem(stringResource(R.string.title_pref_dynamic_socks_port), stringResource(R.string.summary_pref_dynamic_socks_port), dynamicSocksPort, enabled = effectiveLocalProxy) { dynamicSocksPort = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_socks_port), socksPort, enabled = effectiveLocalProxy && !dynamicSocksPort, keyboardNumber = true) { socksPort = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_socks_username), socksUsername, enabled = effectiveLocalProxy) { socksUsername = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_socks_password), socksPassword, enabled = effectiveLocalProxy, isPassword = true) { socksPassword = it }
-                    SettingsSwitchItem(stringResource(R.string.title_pref_socks_enable_udp), stringResource(R.string.summary_pref_socks_enable_udp), socksEnableUdp, enabled = effectiveLocalProxy) { socksEnableUdp = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_remote_dns), remoteDns) { remoteDns = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_domestic_dns), domesticDns) { domesticDns = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_dns_hosts), dnsHosts) { dnsHosts = it }
-                    SettingsListItem(stringResource(R.string.title_core_loglevel), coreLogLevelEntries, coreLogLevelValues, coreLogLevel) { coreLogLevel = it }
-                    SettingsListItem(stringResource(R.string.title_outbound_domain_resolve_method), outboundResolveEntries, outboundResolveValues, outboundResolveMethod) { outboundResolveMethod = it }
-                }
-            }
-            // ── Mux ─────────────────────────────────────────────────────────
-            if (muxMatch) {
-                SettingsSectionCard(
-                    title = titleMux,
-                    icon = Icons.Default.SwapHoriz,
-                    expanded = muxSettingsExpanded || query.isNotEmpty(),
-                    onExpandedChange = { muxSettingsExpanded = it }
-                ) {
-                    SettingsSwitchItem(stringResource(R.string.title_pref_mux_enabled), stringResource(R.string.summary_pref_mux_enabled), mux) { mux = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_mux_concurrency), muxConcurrency, enabled = mux, keyboardNumber = true) { muxConcurrency = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_mux_xudp_concurrency), muxXudpConcurrency, enabled = mux, keyboardNumber = true) { muxXudpConcurrency = it }
-                    SettingsListItem(stringResource(R.string.title_pref_mux_xudp_quic), xudpQuicEntries, xudpQuicValues, muxXudpQuic, enabled = mux && muxXudpConcurrencyInt >= 0) { muxXudpQuic = it }
-                }
-            }
-
-            // ── Fragment ────────────────────────────────────────────────────
-            if (fragmentMatch) {
-                SettingsSectionCard(
-                    title = titleFragment,
-                    icon = Icons.Default.Science,
-                    expanded = fragmentSettingsExpanded || query.isNotEmpty(),
-                    onExpandedChange = { fragmentSettingsExpanded = it }
-                ) {
-                    SettingsSwitchItem(stringResource(R.string.title_pref_fragment_enabled), checked = fragment) { fragment = it }
-                    SettingsListItem(stringResource(R.string.title_pref_fragment_packets), fragmentPacketsEntries, fragmentPacketsValues, fragmentPackets, enabled = fragment) { fragmentPackets = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_fragment_length), fragmentLength, enabled = fragment) { fragmentLength = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_fragment_interval), fragmentInterval, enabled = fragment) { fragmentInterval = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_fragment_maxsplit), fragmentMaxSplit, enabled = fragment, keyboardNumber = true) { fragmentMaxSplit = it }
-                }
-            }
-
-            // ── Observatory ─────────────────────────────────────────────────
-            if (observatoryMatch) {
-                SettingsSectionCard(
-                    title = titleObservatory,
-                    icon = Icons.Default.Speed,
-                    expanded = observatorySettingsExpanded || query.isNotEmpty(),
-                    onExpandedChange = { observatorySettingsExpanded = it }
-                ) {
-                    SettingsEditItem(stringResource(R.string.title_pref_observatory_least_ping_interval), observatoryLeastPingInterval) { viewModel.validateObservatoryDuration(it)?.let { v -> observatoryLeastPingInterval = v } }
-                    SettingsEditItem(stringResource(R.string.title_pref_observatory_least_load_interval), observatoryLeastLoadInterval) { viewModel.validateObservatoryDuration(it)?.let { v -> observatoryLeastLoadInterval = v } }
-                    SettingsListItem(stringResource(R.string.title_pref_observatory_least_load_method), observatoryLeastLoadMethodEntries, observatoryLeastLoadMethodValues, observatoryLeastLoadMethod) { observatoryLeastLoadMethod = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_observatory_least_load_sampling), observatoryLeastLoadSampling, keyboardNumber = true) { viewModel.validateObservatorySampling(it)?.let { v -> observatoryLeastLoadSampling = v } }
-                    SettingsEditItem(stringResource(R.string.title_pref_observatory_least_load_timeout), observatoryLeastLoadTimeout) { viewModel.validateObservatoryDuration(it)?.let { v -> observatoryLeastLoadTimeout = v } }
-                }
-            }
-
-            // ── Advanced ────────────────────────────────────────────────────
-            if (advancedMatch) {
-                SettingsSectionCard(
-                    title = titleAdvanced,
-                    icon = Icons.Default.Tune,
-                    expanded = advancedSettingsExpanded || query.isNotEmpty(),
-                    onExpandedChange = { advancedSettingsExpanded = it }
-                ) {
-                    SettingsSwitchItem(stringResource(R.string.title_pref_is_booted), stringResource(R.string.summary_pref_is_booted), isBooted) { isBooted = it }
-                    if (systemVpnSettingsAvailable) {
-                        ActionPillButton(
-                            stringResource(R.string.title_system_vpn_settings),
-                            onSystemVpnSettingsClicked,
-                            stringResource(R.string.summary_system_vpn_settings)
-                        )
+            SettingsSectionCard(
+                title = stringResource(R.string.title_ui_settings),
+                expanded = uiSettingsExpanded,
+                onExpandedChange = { uiSettingsExpanded = it }
+            ) {
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_speed_enabled),
+                    summary = stringResource(R.string.summary_pref_speed_enabled),
+                    checked = speedEnabled,
+                    onCheckedChange = { speedEnabled = it }
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_confirm_remove),
+                    summary = stringResource(R.string.summary_pref_confirm_remove),
+                    checked = confirmRemove,
+                    onCheckedChange = { confirmRemove = it }
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_double_column_display),
+                    summary = stringResource(R.string.summary_pref_double_column_display),
+                    checked = doubleColumnDisplay,
+                    onCheckedChange = {
+                        doubleColumnDisplay = it
+                        SettingsChangeManager.makeSetupGroupTab()
                     }
-                    SettingsEditItem(stringResource(R.string.title_pref_delay_test_url), delayTestUrl) { delayTestUrl = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_real_ping_concurrency), realPingConcurrency, keyboardNumber = true) { realPingConcurrency = it }
-                    SettingsEditItem(stringResource(R.string.title_pref_ip_api_url), ipApiUrl) { ipApiUrl = it }
-                }
-            }
-            // ── Mode ────────────────────────────────────────────────────────
-            if (modeMatch) {
-                SettingsSectionCard(
-                    title = titleMode,
-                    icon = Icons.Default.AdminPanelSettings,
-                    expanded = modeSettingsExpanded || query.isNotEmpty(),
-                    onExpandedChange = { modeSettingsExpanded = it }
-                ) {
-                    SettingsSwitchItem(stringResource(R.string.title_root_mode_enabled), stringResource(R.string.summary_root_mode_enabled), enableRootMode) { v ->
-                        if (v && !RootManager.cachedRoot()) viewModel.checkAndRequestRoot { enableRootMode = true } else enableRootMode = v
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_group_all_display),
+                    summary = stringResource(R.string.summary_pref_group_all_display),
+                    checked = groupAllDisplay,
+                    onCheckedChange = {
+                        groupAllDisplay = it
+                        SettingsChangeManager.makeSetupGroupTab()
                     }
-                    SettingsSwitchItem(stringResource(R.string.title_root_lan_sharing), stringResource(R.string.summary_root_lan_sharing), lanSharing) { v ->
-                        if (v && !RootManager.cachedRoot()) viewModel.checkAndRequestRoot { lanSharing = true } else lanSharing = v
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_dynamic_color),
+                    summary = stringResource(R.string.summary_pref_dynamic_color),
+                    checked = dynamicColor,
+                    enabled = dynamicColorSupported,
+                    onCheckedChange = {
+                        dynamicColor = it
+                        ThemeManager.setDynamicColorEnabled(it)
                     }
-                }
+                )
+                SettingsListItem(
+                    title = stringResource(R.string.title_language),
+                    entries = languageEntries,
+                    values = languageValues,
+                    selectedValue = language,
+                    onSelected = {
+                        language = it
+                        AppLocaleManager.setApplicationLanguage(it)
+                    }
+                )
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_ui_mode_night),
+                    entries = uiModeNightEntries,
+                    values = uiModeNightValues,
+                    selectedValue = uiModeNight,
+                    onSelected = {
+                        uiModeNight = it
+                        ThemeManager.setThemeMode(it)
+                    }
+                )
             }
 
-            // ── Нет результатов ─────────────────────────────────────────────
-            if (query.isNotEmpty() && !anyMatch) {
-                EmptySearchState(query = searchQuery)
+            SettingsSectionCard(
+                title = stringResource(R.string.title_vpn_settings),
+                expanded = vpnSettingsExpanded,
+                onExpandedChange = { vpnSettingsExpanded = it }
+            ) {
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_ipv6_enabled),
+                    summary = stringResource(R.string.summary_pref_ipv6_enabled),
+                    checked = ipv6Enabled,
+                    onCheckedChange = { ipv6Enabled = it }
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_prefer_ipv6),
+                    summary = stringResource(R.string.summary_pref_prefer_ipv6),
+                    checked = preferIpv6,
+                    onCheckedChange = { preferIpv6 = it }
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_local_dns_enabled),
+                    summary = stringResource(R.string.summary_pref_local_dns_enabled),
+                    checked = localDns,
+                    enabled = isVpn,
+                    onCheckedChange = { localDns = it }
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_fake_dns_enabled),
+                    summary = stringResource(R.string.summary_pref_fake_dns_enabled),
+                    checked = fakeDns,
+                    enabled = isVpn && localDns,
+                    onCheckedChange = { fakeDns = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_vpn_dns),
+                    value = vpnDns,
+                    enabled = isVpn && !localDns,
+                    onValueChanged = { vpnDns = it }
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_append_http_proxy),
+                    summary = stringResource(R.string.summary_pref_append_http_proxy),
+                    checked = appendHttpProxy,
+                    enabled = effectiveLocalProxy,
+                    onCheckedChange = { appendHttpProxy = it }
+                )
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_vpn_bypass_lan),
+                    entries = bypassLanEntries,
+                    values = bypassLanValues,
+                    selectedValue = vpnBypassLan,
+                    enabled = isVpn,
+                    onSelected = { vpnBypassLan = it }
+                )
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_vpn_interface_address),
+                    entries = interfaceAddrEntries,
+                    values = interfaceAddrValues,
+                    selectedValue = vpnInterfaceAddress,
+                    enabled = isVpn,
+                    onSelected = { vpnInterfaceAddress = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_vpn_mtu),
+                    value = vpnMtu,
+                    enabled = isVpn,
+                    keyboardNumber = true,
+                    onValueChanged = { vpnMtu = it }
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_use_hev_tunnel),
+                    summary = stringResource(R.string.summary_pref_use_hev_tunnel),
+                    checked = useHevTun,
+                    enabled = isVpn,
+                    onCheckedChange = {
+                        useHevTun = it
+                        if (it && !enableLocalProxy) {
+                            enableLocalProxy = true
+                        }
+                    }
+                )
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_hev_tunnel_loglevel),
+                    entries = hevLogEntries,
+                    values = hevLogValues,
+                    selectedValue = hevTunLogLevel,
+                    enabled = hevTunEnabled,
+                    onSelected = { hevTunLogLevel = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_hev_tunnel_rw_timeout),
+                    value = hevTunRwTimeout,
+                    enabled = hevTunEnabled,
+                    keyboardNumber = true,
+                    onValueChanged = { hevTunRwTimeout = it }
+                )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-            NavigationBarsSpacer()
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  Поиск
-// ─────────────────────────────────────────────────────────────────────────────
-@Composable
-private fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
-    OutlinedTextField(
-        value = query,
-        onValueChange = onQueryChange,
-        modifier = Modifier.fillMaxWidth(),
-        placeholder = { Text("Поиск настроек…", color = TextTertiary) },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Default.Search,
-                contentDescription = null,
-                tint = if (query.isEmpty()) TextSecondary else AccentBlue
-            )
-        },
-        trailingIcon = {
-            if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(
-                        imageVector = Icons.Default.Clear,
-                        contentDescription = "Очистить",
-                        tint = TextSecondary
-                    )
-                }
+            SettingsSectionCard(
+                title = stringResource(R.string.title_core_settings),
+                expanded = coreSettingsExpanded,
+                onExpandedChange = { coreSettingsExpanded = it }
+            ) {
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_sniffing_enabled),
+                    summary = stringResource(R.string.summary_pref_sniffing_enabled),
+                    checked = sniffingEnabled,
+                    onCheckedChange = { sniffingEnabled = it }
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_route_only_enabled),
+                    summary = stringResource(R.string.summary_pref_route_only_enabled),
+                    checked = routeOnlyEnabled,
+                    onCheckedChange = { routeOnlyEnabled = it }
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_enable_local_proxy),
+                    summary = stringResource(R.string.summary_pref_enable_local_proxy),
+                    checked = enableLocalProxy,
+                    enabled = !localProxyForced,
+                    onCheckedChange = {
+                        if (!localProxyForced) {
+                            enableLocalProxy = it
+                            if (!it && appendHttpProxy) {
+                                appendHttpProxy = false
+                            }
+                        }
+                    }
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_proxy_sharing_enabled),
+                    summary = stringResource(R.string.summary_pref_proxy_sharing_enabled),
+                    checked = proxySharing,
+                    enabled = effectiveLocalProxy,
+                    onCheckedChange = { proxySharing = it }
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_dynamic_socks_port),
+                    summary = stringResource(R.string.summary_pref_dynamic_socks_port),
+                    checked = dynamicSocksPort,
+                    enabled = effectiveLocalProxy,
+                    onCheckedChange = { dynamicSocksPort = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_socks_port),
+                    value = socksPort,
+                    enabled = effectiveLocalProxy && !dynamicSocksPort,
+                    keyboardNumber = true,
+                    onValueChanged = { socksPort = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_socks_username),
+                    value = socksUsername,
+                    enabled = effectiveLocalProxy,
+                    onValueChanged = { socksUsername = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_socks_password),
+                    value = socksPassword,
+                    enabled = effectiveLocalProxy,
+                    isPassword = true,
+                    onValueChanged = { socksPassword = it }
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_socks_enable_udp),
+                    summary = stringResource(R.string.summary_pref_socks_enable_udp),
+                    checked = socksEnableUdp,
+                    enabled = effectiveLocalProxy,
+                    onCheckedChange = { socksEnableUdp = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_remote_dns),
+                    value = remoteDns,
+                    onValueChanged = { remoteDns = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_domestic_dns),
+                    value = domesticDns,
+                    onValueChanged = { domesticDns = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_dns_hosts),
+                    value = dnsHosts,
+                    onValueChanged = { dnsHosts = it }
+                )
+                SettingsListItem(
+                    title = stringResource(R.string.title_core_loglevel),
+                    entries = coreLogLevelEntries,
+                    values = coreLogLevelValues,
+                    selectedValue = coreLogLevel,
+                    onSelected = { coreLogLevel = it }
+                )
+                SettingsListItem(
+                    title = stringResource(R.string.title_outbound_domain_resolve_method),
+                    entries = outboundResolveEntries,
+                    values = outboundResolveValues,
+                    selectedValue = outboundResolveMethod,
+                    onSelected = { outboundResolveMethod = it }
+                )
             }
-        },
-        singleLine = true,
-        shape = RoundedCornerShape(14.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = DarkGreySurface,
-            unfocusedContainerColor = DarkGreySurface,
-            focusedBorderColor = AccentBlueDim,
-            unfocusedBorderColor = DarkGreyBorder,
-            focusedTextColor = TextPrimary,
-            unfocusedTextColor = TextPrimary,
-            focusedPlaceholderColor = TextTertiary,
-            unfocusedPlaceholderColor = TextTertiary,
-            cursorColor = AccentBlue,
-            focusedLeadingIconColor = AccentBlue,
-            unfocusedLeadingIconColor = TextSecondary,
-            focusedTrailingIconColor = TextSecondary,
-            unfocusedTrailingIconColor = TextSecondary
-        )
-    )
-}
 
-@Composable
-private fun EmptySearchState(query: String) {
-    Surface(
-        shape = RoundedCornerShape(16.dp),
-        color = DarkGreySurface,
-        border = BorderStroke(1.dp, DarkGreyBorder),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Text(
-                "Ничего не найдено",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = TextPrimary
-            )
-            Text(
-                "По запросу «$query» настроек нет",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextSecondary
-            )
-        }
-    }
-}
-// ─────────────────────────────────────────────────────────────────────────────
-//  Быстрый выбор режима + действия
-// ─────────────────────────────────────────────────────────────────────────────
-@Composable
+            SettingsSectionCard(
+                title = stringResource(R.string.title_mux_settings),
+                expanded = muxSettingsExpanded,
+                onExpandedChange = { muxSettingsExpanded = it }
+            ) {
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_mux_enabled),
+                    summary = stringResource(R.string.summary_pref_mux_enabled),
+                    checked = mux,
+                    onCheckedChange = { mux = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_mux_concurrency),
+                    value = muxConcurrency,
+                    enabled = mux,
+                    keyboardNumber = true,
+                    onValueChanged = { muxConcurrency = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_mux_xudp_concurrency),
+                    value = muxXudpConcurrency,
+                    enabled = mux,
+                    keyboardNumber = true,
+                    onValueChanged = { muxXudpConcurrency = it }
+                )
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_mux_xudp_quic),
+                    entries = xudpQuicEntries,
+                    values = xudpQuicValues,
+                    selectedValue = muxXudpQuic,
+                    enabled = mux && muxXudpConcurrencyInt >= 0,
+                    onSelected = { muxXudpQuic = it }
+                )
+            }
+
+            SettingsSectionCard(
+                title = stringResource(R.string.title_fragment_settings),
+                expanded = fragmentSettingsExpanded,
+                onExpandedChange = { fragmentSettingsExpanded = it }
+            ) {
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_fragment_enabled),
+                    checked = fragment,
+                    onCheckedChange = { fragment = it }
+                )
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_fragment_packets),
+                    entries = fragmentPacketsEntries,
+                    values = fragmentPacketsValues,
+                    selectedValue = fragmentPackets,
+                    enabled = fragment,
+                    onSelected = { fragmentPackets = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_fragment_length),
+                    value = fragmentLength,
+                    enabled = fragment,
+                    onValueChanged = { fragmentLength = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_fragment_interval),
+                    value = fragmentInterval,
+                    enabled = fragment,
+                    onValueChanged = { fragmentInterval = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_fragment_maxsplit),
+                    value = fragmentMaxSplit,
+                    enabled = fragment,
+                    keyboardNumber = true,
+                    onValueChanged = { fragmentMaxSplit = it }
+                )
+            }
+
+            SettingsSectionCard(
+                title = stringResource(R.string.title_observatory_settings),
+                expanded = observatorySettingsExpanded,
+                onExpandedChange = { observatorySettingsExpanded = it }
+            ) {
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_observatory_least_ping_interval),
+                    value = observatoryLeastPingInterval,
+                    onValueChanged = {
+                        viewModel.validateObservatoryDuration(it)?.let { value ->
+                            observatoryLeastPingInterval = value
+                        }
+                    }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_observatory_least_load_interval),
+                    value = observatoryLeastLoadInterval,
+                    onValueChanged = {
+                        viewModel.validateObservatoryDuration(it)?.let { value ->
+                            observatoryLeastLoadInterval = value
+                        }
+                    }
+                )
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_observatory_least_load_method),
+                    entries = observatoryLeastLoadMethodEntries,
+                    values = observatoryLeastLoadMethodValues,
+                    selectedValue = observatoryLeastLoadMethod,
+                    onSelected = { observatoryLeastLoadMethod = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_observatory_least_load_sampling),
+                    value = observatoryLeastLoadSampling,
+                    keyboardNumber = true,
+                    onValueChanged = {
+                        viewModel.validateObservatorySampling(it)?.let { value ->
+                            observatoryLeastLoadSampling = value
+                        }
+                    }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_observatory_least_load_timeout),
+                    value = observatoryLeastLoadTimeout,
+                    onValueChanged = {
+                        viewModel.validateObservatoryDuration(it)?.let { value ->
+                            observatoryLeastLoadTimeout = value
+                        }
+                    }
+                )
+            }
+
+            SettingsSectionCard(
+                title = stringResource(R.string.title_advanced),
+                expanded = advancedSettingsExpanded,
+                onExpandedChange = { advancedSettingsExpanded = it }
+            ) {
+                SettingsSwitchItem(
+                @Composable
 private fun QuickModeAndActionsBar(
     modeEntries: List<String>,
     modeValues: List<String>,
@@ -708,19 +732,29 @@ private fun QuickModeAndActionsBar(
         border = BorderStroke(1.dp, DarkGreyBorder),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             Text(
                 text = stringResource(R.string.title_mode),
                 style = MaterialTheme.typography.labelMedium,
                 color = TextSecondary
             )
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 modeValues.forEachIndexed { index, value ->
                     val label = modeEntries.getOrElse(index) { value }
                     val isSelected = value == selectedMode
+
                     FilledTonalButton(
                         onClick = { onModeSelected(value) },
-                        modifier = Modifier.weight(1f).height(48.dp), // 48dp — touch target
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(46.dp),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 10.dp),
                         colors = ButtonDefaults.filledTonalButtonColors(
@@ -729,11 +763,15 @@ private fun QuickModeAndActionsBar(
                         )
                     ) {
                         if (isSelected) {
-                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF0B1424)))
-                            Spacer(Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.Rounded.Shield,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
                         }
                         Text(
-                            label,
+                            text = label,
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                             maxLines = 1,
@@ -742,25 +780,42 @@ private fun QuickModeAndActionsBar(
                     }
                 }
             }
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 if (systemVpnSettingsAvailable) {
                     FilledTonalButton(
                         onClick = onSystemVpnSettingsClicked,
-                        modifier = Modifier.weight(1f).height(48.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp),
                         shape = RoundedCornerShape(12.dp),
                         colors = ButtonDefaults.filledTonalButtonColors(
                             containerColor = DarkGreySurfaceElevated,
                             contentColor = TextPrimary
                         )
                     ) {
-                        Text(stringResource(R.string.title_system_vpn_settings), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Icon(
+                            imageVector = Icons.Rounded.VpnKey,
+                            contentDescription = null,
+                            tint = AccentBlue,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.title_system_vpn_settings),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
+
                 FilledTonalButton(
                     onClick = onModeHelpClicked,
                     modifier = Modifier
                         .let { if (systemVpnSettingsAvailable) it.width(48.dp) else it.fillMaxWidth() }
-                        .height(48.dp),
+                        .height(44.dp),
                     shape = RoundedCornerShape(12.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp),
                     colors = ButtonDefaults.filledTonalButtonColors(
@@ -768,33 +823,38 @@ private fun QuickModeAndActionsBar(
                         contentColor = TextPrimary
                     )
                 ) {
-                    Text(
-                        if (systemVpnSettingsAvailable) "?" else stringResource(R.string.title_mode_help),
-                        fontWeight = FontWeight.Bold,
-                        color = AccentBlue,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.HelpOutline,
+                        contentDescription = stringResource(R.string.title_mode_help),
+                        tint = AccentBlue,
+                        modifier = Modifier.size(20.dp)
                     )
+                    if (!systemVpnSettingsAvailable) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = stringResource(R.string.title_mode_help),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }
     }
 }
-// ─────────────────────────────────────────────────────────────────────────────
-//  Карточка секции с иконкой и аккуратным заголовком
-// ─────────────────────────────────────────────────────────────────────────────
+
 @Composable
 private fun SettingsSectionCard(
     title: String,
-    icon: ImageVector,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     content: @Composable ColumnScope.() -> Unit
 ) {
     val arrowRotation by animateFloatAsState(
         targetValue = if (expanded) 180f else 0f,
-        label = "section_arrow"
+        label = "section_arrow_rotation"
     )
+
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = DarkGreySurface,
@@ -805,27 +865,12 @@ private fun SettingsSectionCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(56.dp) // 56dp — комфортный touch target
+                    .height(54.dp)
                     .clickable { onExpandedChange(!expanded) }
                     .padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Иконка секции
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(9.dp))
-                        .background(AccentBlue.copy(alpha = 0.14f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = AccentBlue,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium,
@@ -835,6 +880,7 @@ private fun SettingsSectionCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
+
                 Box(
                     modifier = Modifier
                         .size(32.dp)
@@ -842,20 +888,29 @@ private fun SettingsSectionCard(
                         .background(DarkGreySurfaceElevated),
                     contentAlignment = Alignment.Center
                 ) {
-                    ChevronDownGlyph(
+                    Icon(
+                        imageVector = Icons.Rounded.ExpandMore,
+                        contentDescription = null,
                         tint = AccentBlue,
-                        modifier = Modifier.size(16.dp).rotate(arrowRotation)
+                        modifier = Modifier
+                            .size(20.dp)
+                            .rotate(arrowRotation)
                     )
                 }
             }
+
             AnimatedVisibility(
                 visible = expanded,
                 enter = expandVertically() + fadeIn(),
                 exit = shrinkVertically() + fadeOut()
             ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp)
+                ) {
                     HorizontalDivider(
-                        color = DarkGreyBorderSubtle,
+                        color = DarkGreyBorder,
                         thickness = 1.dp,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
                     )
@@ -866,14 +921,18 @@ private fun SettingsSectionCard(
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Вспомогательные виджеты
-// ─────────────────────────────────────────────────────────────────────────────
 @Composable
-private fun ActionPillButton(title: String, onClick: () -> Unit, subtitle: String? = null) {
+private fun ActionPillButton(
+    title: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    subtitle: String? = null
+) {
     FilledTonalButton(
         onClick = onClick,
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 14.dp, vertical = 6.dp),
         shape = RoundedCornerShape(12.dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
         colors = ButtonDefaults.filledTonalButtonColors(
@@ -881,32 +940,32 @@ private fun ActionPillButton(title: String, onClick: () -> Unit, subtitle: Strin
             contentColor = TextPrimary
         )
     ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            Text(
-                title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = AccentBlue
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = AccentBlue,
+                modifier = Modifier.size(22.dp)
             )
-            if (!subtitle.isNullOrBlank()) {
-                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = TextPrimary
+                )
+                if (!subtitle.isNullOrBlank()) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = TextSecondary
+                    )
+                }
             }
         }
-    }
-}
-
-@Composable
-private fun ChevronDownGlyph(tint: Color, modifier: Modifier = Modifier) {
-    Canvas(modifier = modifier) {
-        val path = Path().apply {
-            moveTo(size.width * 0.2f, size.height * 0.35f)
-            lineTo(size.width * 0.5f, size.height * 0.68f)
-            lineTo(size.width * 0.8f, size.height * 0.35f)
-        }
-        drawPath(
-            path = path,
-            color = tint,
-            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round)
-        )
     }
 }
