@@ -53,8 +53,8 @@ import java.util.Locale
 import javax.net.ssl.HttpsURLConnection
 
 private val PROXYMA_SUB_BASE_URL = com.v2ray.ang.BuildConfig.SUB_BASE_URL
-private const val TELEGRAM_BOT_URL = "https://t.me"
-private const val PRIVACY_POLICY_URL = "https://github.com"
+private const val TELEGRAM_BOT_DEEP_LINK = "tg://resolve?domain=ProxymaVPN_robot&start=app_login"
+private const val PRIVACY_POLICY_URL = "https://github.com/Stazgi/Proxyma-Connect/blob/master/PRIVACY.md"
 
 private val AccentIndigo = Color(0xFF6366F1)
 private val ConnectedGreen = Color(0xFF10B981)
