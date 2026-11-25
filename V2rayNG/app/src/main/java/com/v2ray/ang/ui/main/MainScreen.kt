@@ -165,7 +165,6 @@ fun MainScreen(
         }
     }
 
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val deviceHwid = remember {
@@ -259,7 +258,7 @@ fun MainScreen(
             }
         }
     }
-        val activity = context as? MainActivity
+    val activity = context as? MainActivity
     val incomingKey = activity?.incomingAuthKey?.value
     LaunchedEffect(incomingKey) {
         if (!incomingKey.isNullOrEmpty()) {
@@ -314,19 +313,6 @@ fun MainScreen(
         )
     }
 
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            MainDrawerContent(
-                drawerState = drawerState,
-                onNavigate = { route ->
-                    scope.launch { drawerState.close() }
-                    onNavigate(route)
-                }
-            )
-        }
-    ) {
-        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
@@ -391,11 +377,11 @@ fun MainScreen(
                                 tint = ProxymaTheme.colors.textPrimary
                             )
                         }
-                        IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                                                IconButton(onClick = { onNavigate(MainDestination.Settings) }) {
                             Icon(
-                                painter = painterResource(R.drawable.ic_menu_24dp),
-                                contentDescription = "Меню",
-                                tint = ProxymaTheme.colors.textSecondary
+                                painter = painterResource(R.drawable.ic_settings_24dp),
+                                contentDescription = "Настройки",
+                                tint = ProxymaTheme.colors.textPrimary                   
                             )
                         }
                     }
@@ -497,7 +483,7 @@ fun MainScreen(
                 }
             }
         }
-    }
+        
 }
 @Composable
 private fun SubscriptionStatusCard(
