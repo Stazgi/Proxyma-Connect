@@ -7,11 +7,11 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
-import androidx.compose.runtime.getValue // <-- ДОБАВЛЕНО
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import com.v2ray.ang.AppConfig
-import com.v2ray.ang.handler.MmkvManager.rememberMmkvString // <-- ДОБАВЛЕНО
+import com.v2ray.ang.handler.MmkvManager.rememberMmkvString
 
 data class ProxymaPalette(
     val isDark: Boolean,
@@ -30,17 +30,17 @@ data class ProxymaPalette(
 
 private val DarkProxymaPalette = ProxymaPalette(
     isDark = true,
-    bgTop = Color(0xFF0B0F19),
-    bgBottom = Color(0xFF131B2E),
-    drawerBg = Color(0xFF0E1424),
-    cardSurface = Color(0xFF1A233A),
-    cardBorder = Color(0xFF2B395C),
+    bgTop = Color(0xFF121316),
+    bgBottom = Color(0xFF17181C),
+    drawerBg = Color(0xFF141519),
+    cardSurface = Color(0xFF1E2025),
+    cardBorder = Color(0xFF2E3138),
     accentCyan = Color(0xFF00E5FF),
     accentIndigo = Color(0xFF6366F1),
     connectedGreen = Color(0xFF10B981),
     blockRed = Color(0xFFEF4444),
-    textPrimary = Color(0xFFF8FAFC),
-    textSecondary = Color(0xFF94A3B8)
+    textPrimary = Color(0xFFF3F4F6),
+    textSecondary = Color(0xFF9CA3AF)
 )
 
 private val LightProxymaPalette = ProxymaPalette(
@@ -61,10 +61,7 @@ private val LightProxymaPalette = ProxymaPalette(
 @Composable
 fun rememberProxymaColors(): ProxymaPalette {
     val systemDark = isSystemInDarkTheme()
-    
-    // ИСПОЛЬЗУЕМ rememberMmkvString ВМЕСТО decodeSettingsString
     val uiMode by rememberMmkvString(AppConfig.PREF_UI_MODE_NIGHT, "0")
-    
     val isDark = when (uiMode) {
         "1" -> false
         "2" -> true
@@ -73,12 +70,10 @@ fun rememberProxymaColors(): ProxymaPalette {
     return if (isDark) DarkProxymaPalette else LightProxymaPalette
 }
 
-// 1. Создаем глобальный провайдер (Local)
 val LocalProxymaColors = staticCompositionLocalOf<ProxymaPalette> {
     error("No ProxymaPalette provided")
 }
 
-// 2. Создаем объект для удобного доступа (как MaterialTheme, только ваш)
 object ProxymaTheme {
     val colors: ProxymaPalette
         @Composable
@@ -86,14 +81,12 @@ object ProxymaTheme {
         get() = LocalProxymaColors.current
 }
 
-// 3. Функция-обертка (Theme Wrapper)
 @Composable
 fun ProxymaThemeWrapper(
     content: @Composable () -> Unit
 ) {
     val palette = rememberProxymaColors()
 
-    // Связываем вашу палитру с MaterialTheme, чтобы стандартные компоненты (Switch, TextField) подхватили цвета
     val colorScheme = if (palette.isDark) {
         darkColorScheme(
             primary = palette.accentCyan,
