@@ -786,7 +786,7 @@ private fun PowerConnectButton(
         Spacer(modifier = Modifier.height(14.dp))
 
         Text(
-            text = if (isRunning) "ЗАЩИТА ВКЛЮЧЕНА" else "НЕ ПОДКЛЮЧЕНО",
+            text = if (isRunning) "ЗАЩИТА ВКЛЮЧЕНА" else "Подключиться",
             color = if (isRunning) ConnectedGreen else ProxymaTheme.colors.textSecondary,
             fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
