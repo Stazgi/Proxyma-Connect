@@ -16,6 +16,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,43 +30,21 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.HelpOutline
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.Clear
-import androidx.compose.material.icons.rounded.ExpandMore
-import androidx.compose.material.icons.rounded.Shield
-import androidx.compose.material.icons.rounded.Visibility
-import androidx.compose.material.icons.rounded.VisibilityOff
-import androidx.compose.material.icons.rounded.VpnKey
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -76,18 +55,16 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -107,6 +84,9 @@ import com.v2ray.ang.root.RootManager
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.NavigationBarsSpacer
+import com.v2ray.ang.ui.compose.SettingsEditItem
+import com.v2ray.ang.ui.compose.SettingsListItem
+import com.v2ray.ang.ui.compose.SettingsSwitchItem
 import com.v2ray.ang.ui.compose.ThemeManager
 import com.v2ray.ang.ui.compose.verticalScrollbar
 import com.v2ray.ang.util.LogUtil
@@ -114,15 +94,12 @@ import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.launch
 
 private val DarkGreyBackground = Color(0xFF111215)
-private val DarkGreySurface = Color(0xFF191B20)
-private val DarkGreySurfaceElevated = Color(0xFF23262E)
-private val DarkGreyDialog = Color(0xFF1E2026)
-private val DarkGreyBorder = Color(0xFF2E323C)
-private val DarkGreyDivider = Color(0xFF252831)
+private val DarkGreySurface = Color(0xFF1A1C21)
+private val DarkGreySurfaceElevated = Color(0xFF242730)
+private val DarkGreyBorder = Color(0xFF2E323D)
 private val AccentBlue = Color(0xFF64A2FF)
 private val TextPrimary = Color(0xFFF0F2F5)
-private val TextSecondary = Color(0xFF969CA9)
-private val TextMuted = Color(0xFF686E7B)
+private val TextSecondary = Color(0xFF9AA0AE)
 
 private val DarkGreyColorScheme = darkColorScheme(
     primary = AccentBlue,
@@ -140,7 +117,7 @@ private val DarkGreyColorScheme = darkColorScheme(
     surfaceVariant = DarkGreySurfaceElevated,
     onSurfaceVariant = TextSecondary,
     outline = DarkGreyBorder,
-    outlineVariant = DarkGreyDivider
+    outlineVariant = Color(0xFF262933)
 )
 
 class SettingsActivity : BaseComponentActivity() {
@@ -159,8 +136,7 @@ class SettingsActivity : BaseComponentActivity() {
             }
         }
     }
-
-    private fun openSystemVpnSettings() {
+        private fun openSystemVpnSettings() {
         try {
             startActivity(Intent(Settings.ACTION_VPN_SETTINGS))
         } catch (error: ActivityNotFoundException) {
@@ -196,7 +172,7 @@ fun SettingsScreen(
     onModeHelpClicked: () -> Unit,
     onSystemVpnSettingsClicked: () -> Unit
 ) {
-        val scrollState = rememberScrollState()
+    val scrollState = rememberScrollState()
     val isLoading by viewModel.isLoading.collectAsStateWithLifecycle()
     val systemVpnSettingsAvailable by viewModel.systemVpnSettingsAvailable.collectAsStateWithLifecycle()
 
@@ -227,8 +203,7 @@ fun SettingsScreen(
     var fragmentLength by rememberMmkvString(AppConfig.PREF_FRAGMENT_LENGTH, "50-100")
     var fragmentInterval by rememberMmkvString(AppConfig.PREF_FRAGMENT_INTERVAL, "10-20")
     var fragmentMaxSplit by rememberMmkvString(AppConfig.PREF_FRAGMENT_MAXSPLIT, "10")
-
-    var observatoryLeastPingInterval by rememberMmkvString(AppConfig.PREF_OBSERVATORY_LEAST_PING_INTERVAL, AppConfig.OBSERVATORY_LEAST_PING_INTERVAL)
+        var observatoryLeastPingInterval by rememberMmkvString(AppConfig.PREF_OBSERVATORY_LEAST_PING_INTERVAL, AppConfig.OBSERVATORY_LEAST_PING_INTERVAL)
     var observatoryLeastLoadInterval by rememberMmkvString(AppConfig.PREF_OBSERVATORY_LEAST_LOAD_INTERVAL, AppConfig.OBSERVATORY_LEAST_LOAD_INTERVAL)
     var observatoryLeastLoadMethod by rememberMmkvString(AppConfig.PREF_OBSERVATORY_LEAST_LOAD_METHOD, AppConfig.OBSERVATORY_LEAST_LOAD_METHOD)
     var observatoryLeastLoadSampling by rememberMmkvString(AppConfig.PREF_OBSERVATORY_LEAST_LOAD_SAMPLING, AppConfig.OBSERVATORY_LEAST_LOAD_SAMPLING)
@@ -254,9 +229,7 @@ fun SettingsScreen(
     var doubleColumnDisplay by rememberMmkvBool(AppConfig.PREF_DOUBLE_COLUMN_DISPLAY, false)
     var groupAllDisplay by rememberMmkvBool(AppConfig.PREF_GROUP_ALL_DISPLAY, false)
     var language by remember {
-        mutableStateOf(
-            MmkvManager.decodeSettingsString(AppConfig.PREF_LANGUAGE, "auto") ?: "auto"
-        )
+        mutableStateOf(MmkvManager.decodeSettingsString(AppConfig.PREF_LANGUAGE, "auto") ?: "auto")
     }
     var uiModeNight by rememberMmkvString(AppConfig.PREF_UI_MODE_NIGHT, "0")
     var dynamicColor by rememberMmkvBool(AppConfig.PREF_DYNAMIC_COLOR, true)
@@ -281,7 +254,8 @@ fun SettingsScreen(
     val localProxyForced = hevTunEnabled
     val effectiveLocalProxy = enableLocalProxy || localProxyForced
     val muxXudpConcurrencyInt = muxXudpConcurrency.toIntOrNull() ?: AppConfig.DEFAULT_MUX_XUDP_CONCURRENCY.toInt()
-        val dynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+    val dynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     LaunchedEffect(dynamicColorSupported) {
         if (!dynamicColorSupported && dynamicColor) {
             dynamicColor = false
@@ -311,8 +285,7 @@ fun SettingsScreen(
     val observatoryLeastLoadMethodValues = stringArrayResource(R.array.observatory_least_load_method).toList()
     val modeEntries = stringArrayResource(R.array.mode_entries).toList()
     val modeValues = stringArrayResource(R.array.mode_value).toList()
-
-    Scaffold(
+        Scaffold(
         containerColor = DarkGreyBackground,
         contentWindowInsets = WindowInsets(0),
         topBar = {
@@ -343,857 +316,88 @@ fun SettingsScreen(
                 onModeHelpClicked = onModeHelpClicked
             )
 
-            SettingsSectionCard(
-                title = stringResource(R.string.title_ui_settings),
-                expanded = uiSettingsExpanded,
-                onExpandedChange = { uiSettingsExpanded = it }
-            ) {
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_speed_enabled),
-                    summary = stringResource(R.string.summary_pref_speed_enabled),
-                    checked = speedEnabled,
-                    onCheckedChange = { speedEnabled = it }
-                )
-                SettingsRowDivider()
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_confirm_remove),
-                    summary = stringResource(R.string.summary_pref_confirm_remove),
-                    checked = confirmRemove,
-                    onCheckedChange = { confirmRemove = it }
-                )
-                SettingsRowDivider()
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_double_column_display),
-                    summary = stringResource(R.string.summary_pref_double_column_display),
-                    checked = doubleColumnDisplay,
-                    onCheckedChange = {
-                        doubleColumnDisplay = it
-                        SettingsChangeManager.makeSetupGroupTab()
-                    }
-                )
-                SettingsRowDivider()
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_group_all_display),
-                    summary = stringResource(R.string.summary_pref_group_all_display),
-                    checked = groupAllDisplay,
-                    onCheckedChange = {
-                        groupAllDisplay = it
-                        SettingsChangeManager.makeSetupGroupTab()
-                    }
-                )
-                SettingsRowDivider()
-                                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_dynamic_color),
-                    summary = stringResource(R.string.summary_pref_dynamic_color),
-                    checked = dynamicColor,
-                    enabled = dynamicColorSupported,
-                    onCheckedChange = {
-                        dynamicColor = it
-                        ThemeManager.setDynamicColorEnabled(it)
-                    }
-                )
-                SettingsRowDivider()
-                DarkListRow(
-                    title = stringResource(R.string.title_language),
-                    entries = languageEntries,
-                    values = languageValues,
-                    selectedValue = language,
-                    onSelected = {
-                        language = it
-                        AppLocaleManager.setApplicationLanguage(it)
-                    }
-                )
-                SettingsRowDivider()
-                DarkListRow(
-                    title = stringResource(R.string.title_pref_ui_mode_night),
-                    entries = uiModeNightEntries,
-                    values = uiModeNightValues,
-                    selectedValue = uiModeNight,
-                    onSelected = {
-                        uiModeNight = it
-                        ThemeManager.setThemeMode(it)
-                    }
-                )
+            SettingsSectionCard(stringResource(R.string.title_ui_settings), uiSettingsExpanded, { uiSettingsExpanded = it }) {
+                SettingsSwitchItem(stringResource(R.string.title_pref_speed_enabled), stringResource(R.string.summary_pref_speed_enabled), speedEnabled) { speedEnabled = it }
+                SettingsSwitchItem(stringResource(R.string.title_pref_confirm_remove), stringResource(R.string.summary_pref_confirm_remove), confirmRemove) { confirmRemove = it }
+                SettingsSwitchItem(stringResource(R.string.title_pref_double_column_display), stringResource(R.string.summary_pref_double_column_display), doubleColumnDisplay) { doubleColumnDisplay = it; SettingsChangeManager.makeSetupGroupTab() }
+                SettingsSwitchItem(stringResource(R.string.title_pref_group_all_display), stringResource(R.string.summary_pref_group_all_display), groupAllDisplay) { groupAllDisplay = it; SettingsChangeManager.makeSetupGroupTab() }
+                SettingsSwitchItem(stringResource(R.string.title_pref_dynamic_color), stringResource(R.string.summary_pref_dynamic_color), dynamicColor, enabled = dynamicColorSupported) { dynamicColor = it; ThemeManager.setDynamicColorEnabled(it) }
+                SettingsListItem(stringResource(R.string.title_language), languageEntries, languageValues, language) { language = it; AppLocaleManager.setApplicationLanguage(it) }
+                SettingsListItem(stringResource(R.string.title_pref_ui_mode_night), uiModeNightEntries, uiModeNightValues, uiModeNight) { uiModeNight = it; ThemeManager.setThemeMode(it) }
             }
 
-            SettingsSectionCard(
-                title = stringResource(R.string.title_vpn_settings),
-                expanded = vpnSettingsExpanded,
-                onExpandedChange = { vpnSettingsExpanded = it }
-            ) {
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_ipv6_enabled),
-                    summary = stringResource(R.string.summary_pref_ipv6_enabled),
-                    checked = ipv6Enabled,
-                    onCheckedChange = { ipv6Enabled = it }
-                )
-                SettingsRowDivider()
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_prefer_ipv6),
-                    summary = stringResource(R.string.summary_pref_prefer_ipv6),
-                    checked = preferIpv6,
-                    onCheckedChange = { preferIpv6 = it }
-                )
-                SettingsRowDivider()
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_local_dns_enabled),
-                    summary = stringResource(R.string.summary_pref_local_dns_enabled),
-                    checked = localDns,
-                    enabled = isVpn,
-                    onCheckedChange = { localDns = it }
-                )
-                SettingsRowDivider()
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_fake_dns_enabled),
-                    summary = stringResource(R.string.summary_pref_fake_dns_enabled),
-                    checked = fakeDns,
-                    enabled = isVpn && localDns,
-                    onCheckedChange = { fakeDns = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_vpn_dns),
-                    value = vpnDns,
-                    enabled = isVpn && !localDns,
-                    onValueChanged = { vpnDns = it }
-                )
-                SettingsRowDivider()
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_append_http_proxy),
-                    summary = stringResource(R.string.summary_pref_append_http_proxy),
-                    checked = appendHttpProxy,
-                    enabled = effectiveLocalProxy,
-                    onCheckedChange = { appendHttpProxy = it }
-                )
-                SettingsRowDivider()
-                DarkListRow(
-                    title = stringResource(R.string.title_pref_vpn_bypass_lan),
-                    entries = bypassLanEntries,
-                    values = bypassLanValues,
-                    selectedValue = vpnBypassLan,
-                    enabled = isVpn,
-                    onSelected = { vpnBypassLan = it }
-                )
-                SettingsRowDivider()
-                DarkListRow(
-                    title = stringResource(R.string.title_pref_vpn_interface_address),
-                    entries = interfaceAddrEntries,
-                    values = interfaceAddrValues,
-                    selectedValue = vpnInterfaceAddress,
-                    enabled = isVpn,
-                    onSelected = { vpnInterfaceAddress = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_vpn_mtu),
-                    value = vpnMtu,
-                    enabled = isVpn,
-                    keyboardNumber = true,
-                    onValueChanged = { vpnMtu = it }
-                )
-                                SettingsRowDivider()
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_use_hev_tunnel),
-                    summary = stringResource(R.string.summary_pref_use_hev_tunnel),
-                    checked = useHevTun,
-                    enabled = isVpn,
-                    onCheckedChange = {
-                        useHevTun = it
-                        if (it && !enableLocalProxy) {
-                            enableLocalProxy = true
-                        }
-                    }
-                )
-                SettingsRowDivider()
-                DarkListRow(
-                    title = stringResource(R.string.title_pref_hev_tunnel_loglevel),
-                    entries = hevLogEntries,
-                    values = hevLogValues,
-                    selectedValue = hevTunLogLevel,
-                    enabled = hevTunEnabled,
-                    onSelected = { hevTunLogLevel = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_hev_tunnel_rw_timeout),
-                    value = hevTunRwTimeout,
-                    enabled = hevTunEnabled,
-                    keyboardNumber = true,
-                    onValueChanged = { hevTunRwTimeout = it }
-                )
+            SettingsSectionCard(stringResource(R.string.title_vpn_settings), vpnSettingsExpanded, { vpnSettingsExpanded = it }) {
+                SettingsSwitchItem(stringResource(R.string.title_pref_ipv6_enabled), stringResource(R.string.summary_pref_ipv6_enabled), ipv6Enabled) { ipv6Enabled = it }
+                SettingsSwitchItem(stringResource(R.string.title_pref_prefer_ipv6), stringResource(R.string.summary_pref_prefer_ipv6), preferIpv6) { preferIpv6 = it }
+                SettingsSwitchItem(stringResource(R.string.title_pref_local_dns_enabled), stringResource(R.string.summary_pref_local_dns_enabled), localDns, enabled = isVpn) { localDns = it }
+                SettingsSwitchItem(stringResource(R.string.title_pref_fake_dns_enabled), stringResource(R.string.summary_pref_fake_dns_enabled), fakeDns, enabled = isVpn && localDns) { fakeDns = it }
+                SettingsEditItem(stringResource(R.string.title_pref_vpn_dns), vpnDns, enabled = isVpn && !localDns) { vpnDns = it }
+                SettingsSwitchItem(stringResource(R.string.title_pref_append_http_proxy), stringResource(R.string.summary_pref_append_http_proxy), appendHttpProxy, enabled = effectiveLocalProxy) { appendHttpProxy = it }
+                SettingsListItem(stringResource(R.string.title_pref_vpn_bypass_lan), bypassLanEntries, bypassLanValues, vpnBypassLan, enabled = isVpn) { vpnBypassLan = it }
+                SettingsListItem(stringResource(R.string.title_pref_vpn_interface_address), interfaceAddrEntries, interfaceAddrValues, vpnInterfaceAddress, enabled = isVpn) { vpnInterfaceAddress = it }
+                SettingsEditItem(stringResource(R.string.title_pref_vpn_mtu), vpnMtu, enabled = isVpn, keyboardNumber = true) { vpnMtu = it }
+                SettingsSwitchItem(stringResource(R.string.title_pref_use_hev_tunnel), stringResource(R.string.summary_pref_use_hev_tunnel), useHevTun, enabled = isVpn) { useHevTun = it; if (it && !enableLocalProxy) enableLocalProxy = true }
+                SettingsListItem(stringResource(R.string.title_pref_hev_tunnel_loglevel), hevLogEntries, hevLogValues, hevTunLogLevel, enabled = hevTunEnabled) { hevTunLogLevel = it }
+                SettingsEditItem(stringResource(R.string.title_pref_hev_tunnel_rw_timeout), hevTunRwTimeout, enabled = hevTunEnabled, keyboardNumber = true) { hevTunRwTimeout = it }
             }
 
-            SettingsSectionCard(
-                title = stringResource(R.string.title_core_settings),
-                expanded = coreSettingsExpanded,
-                onExpandedChange = { coreSettingsExpanded = it }
-            ) {
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_sniffing_enabled),
-                    summary = stringResource(R.string.summary_pref_sniffing_enabled),
-                    checked = sniffingEnabled,
-                    onCheckedChange = { sniffingEnabled = it }
-                )
-                SettingsRowDivider()
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_route_only_enabled),
-                    summary = stringResource(R.string.summary_pref_route_only_enabled),
-                    checked = routeOnlyEnabled,
-                    onCheckedChange = { routeOnlyEnabled = it }
-                )
-                SettingsRowDivider()
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_enable_local_proxy),
-                    summary = stringResource(R.string.summary_pref_enable_local_proxy),
-                    checked = enableLocalProxy,
-                    enabled = !localProxyForced,
-                    onCheckedChange = {
-                        if (!localProxyForced) {
-                            enableLocalProxy = it
-                            if (!it && appendHttpProxy) {
-                                appendHttpProxy = false
-                            }
-                        }
-                    }
-                )
-                SettingsRowDivider()
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_proxy_sharing_enabled),
-                    summary = stringResource(R.string.summary_pref_proxy_sharing_enabled),
-                    checked = proxySharing,
-                    enabled = effectiveLocalProxy,
-                    onCheckedChange = { proxySharing = it }
-                )
-                SettingsRowDivider()
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_dynamic_socks_port),
-                    summary = stringResource(R.string.summary_pref_dynamic_socks_port),
-                    checked = dynamicSocksPort,
-                    enabled = effectiveLocalProxy,
-                    onCheckedChange = { dynamicSocksPort = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_socks_port),
-                    value = socksPort,
-                    enabled = effectiveLocalProxy && !dynamicSocksPort,
-                    keyboardNumber = true,
-                    onValueChanged = { socksPort = it }
-                )
-                                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_socks_username),
-                    value = socksUsername,
-                    enabled = effectiveLocalProxy,
-                    onValueChanged = { socksUsername = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_socks_password),
-                    value = socksPassword,
-                    enabled = effectiveLocalProxy,
-                    isPassword = true,
-                    onValueChanged = { socksPassword = it }
-                )
-                SettingsRowDivider()
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_socks_enable_udp),
-                    summary = stringResource(R.string.summary_pref_socks_enable_udp),
-                    checked = socksEnableUdp,
-                    enabled = effectiveLocalProxy,
-                    onCheckedChange = { socksEnableUdp = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_remote_dns),
-                    value = remoteDns,
-                    onValueChanged = { remoteDns = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_domestic_dns),
-                    value = domesticDns,
-                    onValueChanged = { domesticDns = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_dns_hosts),
-                    value = dnsHosts,
-                    onValueChanged = { dnsHosts = it }
-                )
-                SettingsRowDivider()
-                DarkListRow(
-                    title = stringResource(R.string.title_core_loglevel),
-                    entries = coreLogLevelEntries,
-                    values = coreLogLevelValues,
-                    selectedValue = coreLogLevel,
-                    onSelected = { coreLogLevel = it }
-                )
-                SettingsRowDivider()
-                DarkListRow(
-                    title = stringResource(R.string.title_outbound_domain_resolve_method),
-                    entries = outboundResolveEntries,
-                    values = outboundResolveValues,
-                    selectedValue = outboundResolveMethod,
-                    onSelected = { outboundResolveMethod = it }
-                )
+            SettingsSectionCard(stringResource(R.string.title_core_settings), coreSettingsExpanded, { coreSettingsExpanded = it }) {
+                SettingsSwitchItem(stringResource(R.string.title_pref_sniffing_enabled), stringResource(R.string.summary_pref_sniffing_enabled), sniffingEnabled) { sniffingEnabled = it }
+                SettingsSwitchItem(stringResource(R.string.title_pref_route_only_enabled), stringResource(R.string.summary_pref_route_only_enabled), routeOnlyEnabled) { routeOnlyEnabled = it }
+                SettingsSwitchItem(stringResource(R.string.title_pref_enable_local_proxy), stringResource(R.string.summary_pref_enable_local_proxy), enableLocalProxy, enabled = !localProxyForced) { if (!localProxyForced) { enableLocalProxy = it; if (!it && appendHttpProxy) appendHttpProxy = false } }
+                SettingsSwitchItem(stringResource(R.string.title_pref_proxy_sharing_enabled), stringResource(R.string.summary_pref_proxy_sharing_enabled), proxySharing, enabled = effectiveLocalProxy) { proxySharing = it }
+                SettingsSwitchItem(stringResource(R.string.title_pref_dynamic_socks_port), stringResource(R.string.summary_pref_dynamic_socks_port), dynamicSocksPort, enabled = effectiveLocalProxy) { dynamicSocksPort = it }
+                SettingsEditItem(stringResource(R.string.title_pref_socks_port), socksPort, enabled = effectiveLocalProxy && !dynamicSocksPort, keyboardNumber = true) { socksPort = it }
+                SettingsEditItem(stringResource(R.string.title_pref_socks_username), socksUsername, enabled = effectiveLocalProxy) { socksUsername = it }
+                SettingsEditItem(stringResource(R.string.title_pref_socks_password), socksPassword, enabled = effectiveLocalProxy, isPassword = true) { socksPassword = it }
+                SettingsSwitchItem(stringResource(R.string.title_pref_socks_enable_udp), stringResource(R.string.summary_pref_socks_enable_udp), socksEnableUdp, enabled = effectiveLocalProxy) { socksEnableUdp = it }
+                SettingsEditItem(stringResource(R.string.title_pref_remote_dns), remoteDns) { remoteDns = it }
+                SettingsEditItem(stringResource(R.string.title_pref_domestic_dns), domesticDns) { domesticDns = it }
+                SettingsEditItem(stringResource(R.string.title_pref_dns_hosts), dnsHosts) { dnsHosts = it }
+                SettingsListItem(stringResource(R.string.title_core_loglevel), coreLogLevelEntries, coreLogLevelValues, coreLogLevel) { coreLogLevel = it }
+                SettingsListItem(stringResource(R.string.title_outbound_domain_resolve_method), outboundResolveEntries, outboundResolveValues, outboundResolveMethod) { outboundResolveMethod = it }
+            }
+                        SettingsSectionCard(stringResource(R.string.title_mux_settings), muxSettingsExpanded, { muxSettingsExpanded = it }) {
+                SettingsSwitchItem(stringResource(R.string.title_pref_mux_enabled), stringResource(R.string.summary_pref_mux_enabled), mux) { mux = it }
+                SettingsEditItem(stringResource(R.string.title_pref_mux_concurrency), muxConcurrency, enabled = mux, keyboardNumber = true) { muxConcurrency = it }
+                SettingsEditItem(stringResource(R.string.title_pref_mux_xudp_concurrency), muxXudpConcurrency, enabled = mux, keyboardNumber = true) { muxXudpConcurrency = it }
+                SettingsListItem(stringResource(R.string.title_pref_mux_xudp_quic), xudpQuicEntries, xudpQuicValues, muxXudpQuic, enabled = mux && muxXudpConcurrencyInt >= 0) { muxXudpQuic = it }
             }
 
-            SettingsSectionCard(
-                title = stringResource(R.string.title_mux_settings),
-                expanded = muxSettingsExpanded,
-                onExpandedChange = { muxSettingsExpanded = it }
-            ) {
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_mux_enabled),
-                    summary = stringResource(R.string.summary_pref_mux_enabled),
-                    checked = mux,
-                    onCheckedChange = { mux = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_mux_concurrency),
-                    value = muxConcurrency,
-                    enabled = mux,
-                    keyboardNumber = true,
-                    onValueChanged = { muxConcurrency = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_mux_xudp_concurrency),
-                    value = muxXudpConcurrency,
-                    enabled = mux,
-                    keyboardNumber = true,
-                    onValueChanged = { muxXudpConcurrency = it }
-                )
-                SettingsRowDivider()
-                DarkListRow(
-                    title = stringResource(R.string.title_pref_mux_xudp_quic),
-                    entries = xudpQuicEntries,
-                    values = xudpQuicValues,
-                    selectedValue = muxXudpQuic,
-                    enabled = mux && muxXudpConcurrencyInt >= 0,
-                    onSelected = { muxXudpQuic = it }
-                )
-            }
-                        SettingsSectionCard(
-                title = stringResource(R.string.title_fragment_settings),
-                expanded = fragmentSettingsExpanded,
-                onExpandedChange = { fragmentSettingsExpanded = it }
-            ) {
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_fragment_enabled),
-                    checked = fragment,
-                    onCheckedChange = { fragment = it }
-                )
-                SettingsRowDivider()
-                DarkListRow(
-                    title = stringResource(R.string.title_pref_fragment_packets),
-                    entries = fragmentPacketsEntries,
-                    values = fragmentPacketsValues,
-                    selectedValue = fragmentPackets,
-                    enabled = fragment,
-                    onSelected = { fragmentPackets = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_fragment_length),
-                    value = fragmentLength,
-                    enabled = fragment,
-                    onValueChanged = { fragmentLength = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_fragment_interval),
-                    value = fragmentInterval,
-                    enabled = fragment,
-                    onValueChanged = { fragmentInterval = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_fragment_maxsplit),
-                    value = fragmentMaxSplit,
-                    enabled = fragment,
-                    keyboardNumber = true,
-                    onValueChanged = { fragmentMaxSplit = it }
-                )
+            SettingsSectionCard(stringResource(R.string.title_fragment_settings), fragmentSettingsExpanded, { fragmentSettingsExpanded = it }) {
+                SettingsSwitchItem(stringResource(R.string.title_pref_fragment_enabled), checked = fragment) { fragment = it }
+                SettingsListItem(stringResource(R.string.title_pref_fragment_packets), fragmentPacketsEntries, fragmentPacketsValues, fragmentPackets, enabled = fragment) { fragmentPackets = it }
+                SettingsEditItem(stringResource(R.string.title_pref_fragment_length), fragmentLength, enabled = fragment) { fragmentLength = it }
+                SettingsEditItem(stringResource(R.string.title_pref_fragment_interval), fragmentInterval, enabled = fragment) { fragmentInterval = it }
+                SettingsEditItem(stringResource(R.string.title_pref_fragment_maxsplit), fragmentMaxSplit, enabled = fragment, keyboardNumber = true) { fragmentMaxSplit = it }
             }
 
-            SettingsSectionCard(
-                title = stringResource(R.string.title_observatory_settings),
-                expanded = observatorySettingsExpanded,
-                onExpandedChange = { observatorySettingsExpanded = it }
-            ) {
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_observatory_least_ping_interval),
-                    value = observatoryLeastPingInterval,
-                    onValueChanged = {
-                        viewModel.validateObservatoryDuration(it)?.let { value ->
-                            observatoryLeastPingInterval = value
-                        }
-                    }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_observatory_least_load_interval),
-                    value = observatoryLeastLoadInterval,
-                    onValueChanged = {
-                        viewModel.validateObservatoryDuration(it)?.let { value ->
-                            observatoryLeastLoadInterval = value
-                        }
-                    }
-                )
-                SettingsRowDivider()
-                DarkListRow(
-                    title = stringResource(R.string.title_pref_observatory_least_load_method),
-                    entries = observatoryLeastLoadMethodEntries,
-                    values = observatoryLeastLoadMethodValues,
-                    selectedValue = observatoryLeastLoadMethod,
-                    onSelected = { observatoryLeastLoadMethod = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_observatory_least_load_sampling),
-                    value = observatoryLeastLoadSampling,
-                    keyboardNumber = true,
-                    onValueChanged = {
-                        viewModel.validateObservatorySampling(it)?.let { value ->
-                            observatoryLeastLoadSampling = value
-                        }
-                    }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_observatory_least_load_timeout),
-                    value = observatoryLeastLoadTimeout,
-                    onValueChanged = {
-                        viewModel.validateObservatoryDuration(it)?.let { value ->
-                            observatoryLeastLoadTimeout = value
-                        }
-                    }
-                )
+            SettingsSectionCard(stringResource(R.string.title_observatory_settings), observatorySettingsExpanded, { observatorySettingsExpanded = it }) {
+                SettingsEditItem(stringResource(R.string.title_pref_observatory_least_ping_interval), observatoryLeastPingInterval) { viewModel.validateObservatoryDuration(it)?.let { v -> observatoryLeastPingInterval = v } }
+                SettingsEditItem(stringResource(R.string.title_pref_observatory_least_load_interval), observatoryLeastLoadInterval) { viewModel.validateObservatoryDuration(it)?.let { v -> observatoryLeastLoadInterval = v } }
+                SettingsListItem(stringResource(R.string.title_pref_observatory_least_load_method), observatoryLeastLoadMethodEntries, observatoryLeastLoadMethodValues, observatoryLeastLoadMethod) { observatoryLeastLoadMethod = it }
+                SettingsEditItem(stringResource(R.string.title_pref_observatory_least_load_sampling), observatoryLeastLoadSampling, keyboardNumber = true) { viewModel.validateObservatorySampling(it)?.let { v -> observatoryLeastLoadSampling = v } }
+                SettingsEditItem(stringResource(R.string.title_pref_observatory_least_load_timeout), observatoryLeastLoadTimeout) { viewModel.validateObservatoryDuration(it)?.let { v -> observatoryLeastLoadTimeout = v } }
             }
-                        SettingsSectionCard(
-                title = stringResource(R.string.title_advanced),
-                expanded = advancedSettingsExpanded,
-                onExpandedChange = { advancedSettingsExpanded = it }
-            ) {
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_pref_is_booted),
-                    summary = stringResource(R.string.summary_pref_is_booted),
-                    checked = isBooted,
-                    onCheckedChange = { isBooted = it }
-                )
+
+            SettingsSectionCard(stringResource(R.string.title_advanced), advancedSettingsExpanded, { advancedSettingsExpanded = it }) {
+                SettingsSwitchItem(stringResource(R.string.title_pref_is_booted), stringResource(R.string.summary_pref_is_booted), isBooted) { isBooted = it }
                 if (systemVpnSettingsAvailable) {
-                    SettingsRowDivider()
-                    ActionPillButton(
-                        title = stringResource(R.string.title_system_vpn_settings),
-                        subtitle = stringResource(R.string.summary_system_vpn_settings),
-                        icon = Icons.Rounded.VpnKey,
-                        onClick = onSystemVpnSettingsClicked
-                    )
+                    ActionPillButton(stringResource(R.string.title_system_vpn_settings), onSystemVpnSettingsClicked, stringResource(R.string.summary_system_vpn_settings))
                 }
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_delay_test_url),
-                    value = delayTestUrl,
-                    onValueChanged = { delayTestUrl = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_real_ping_concurrency),
-                    value = realPingConcurrency,
-                    keyboardNumber = true,
-                    onValueChanged = { realPingConcurrency = it }
-                )
-                SettingsRowDivider()
-                DarkEditRow(
-                    title = stringResource(R.string.title_pref_ip_api_url),
-                    value = ipApiUrl,
-                    onValueChanged = { ipApiUrl = it }
-                )
+                SettingsEditItem(stringResource(R.string.title_pref_delay_test_url), delayTestUrl) { delayTestUrl = it }
+                SettingsEditItem(stringResource(R.string.title_pref_real_ping_concurrency), realPingConcurrency, keyboardNumber = true) { realPingConcurrency = it }
+                SettingsEditItem(stringResource(R.string.title_pref_ip_api_url), ipApiUrl) { ipApiUrl = it }
             }
 
-            SettingsSectionCard(
-                title = stringResource(R.string.title_mode_settings),
-                expanded = modeSettingsExpanded,
-                onExpandedChange = { modeSettingsExpanded = it }
-            ) {
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_root_mode_enabled),
-                    summary = stringResource(R.string.summary_root_mode_enabled),
-                    checked = enableRootMode,
-                    onCheckedChange = { newValue ->
-                        if (newValue && !RootManager.cachedRoot()) {
-                            viewModel.checkAndRequestRoot {
-                                enableRootMode = true
-                            }
-                        } else {
-                            enableRootMode = newValue
-                        }
-                    }
-                )
-                SettingsRowDivider()
-                DarkSwitchRow(
-                    title = stringResource(R.string.title_root_lan_sharing),
-                    summary = stringResource(R.string.summary_root_lan_sharing),
-                    checked = lanSharing,
-                    onCheckedChange = { newValue ->
-                        if (newValue && !RootManager.cachedRoot()) {
-                            viewModel.checkAndRequestRoot {
-                                lanSharing = true
-                            }
-                        } else {
-                            lanSharing = newValue
-                        }
-                    }
-                )
+            SettingsSectionCard(stringResource(R.string.title_mode_settings), modeSettingsExpanded, { modeSettingsExpanded = it }) {
+                SettingsSwitchItem(stringResource(R.string.title_root_mode_enabled), stringResource(R.string.summary_root_mode_enabled), enableRootMode) { v -> if (v && !RootManager.cachedRoot()) viewModel.checkAndRequestRoot { enableRootMode = true } else enableRootMode = v }
+                SettingsSwitchItem(stringResource(R.string.title_root_lan_sharing), stringResource(R.string.summary_root_lan_sharing), lanSharing) { v -> if (v && !RootManager.cachedRoot()) viewModel.checkAndRequestRoot { lanSharing = true } else lanSharing = v }
             }
 
             Spacer(modifier = Modifier.height(20.dp))
             NavigationBarsSpacer()
         }
-    }
-}
-
-@Composable
-private fun SettingsRowDivider() {
-    HorizontalDivider(
-        color = DarkGreyDivider,
-        thickness = 1.dp,
-        modifier = Modifier.padding(horizontal = 16.dp)
-    )
-}
-
-@Composable
-private fun DarkSwitchRow(
-    title: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-    summary: String? = null,
-    enabled: Boolean = true
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 60.dp)
-            .clickable(enabled = enabled) { onCheckedChange(!checked) }
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .alpha(if (enabled) 1f else 0.45f),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(3.dp)
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Medium,
-                color = TextPrimary
-            )
-            if (!summary.isNullOrBlank()) {
-                Text(
-                    text = summary,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary
-                )
-            }
-        }
-
-        Switch(
-            checked = checked,
-            onCheckedChange = null,
-            enabled = enabled,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color(0xFF0A192F),
-                checkedTrackColor = AccentBlue,
-                uncheckedThumbColor = TextSecondary,
-                uncheckedTrackColor = DarkGreySurfaceElevated,
-                uncheckedBorderColor = DarkGreyBorder,
-                disabledCheckedTrackColor = AccentBlue.copy(alpha = 0.5f),
-                disabledUncheckedTrackColor = DarkGreySurfaceElevated
-            )
-        )
-    }
-}
-
-@Composable
-private fun DarkListRow(
-    title: String,
-    entries: List<String>,
-    values: List<String>,
-    selectedValue: String,
-    onSelected: (String) -> Unit,
-    enabled: Boolean = true
-) {
-    var showDialog by remember { mutableStateOf(false) }
-    val selectedIndex = values.indexOf(selectedValue)
-    val displayLabel = if (selectedIndex >= 0 && selectedIndex < entries.size) {
-        entries[selectedIndex]
-    } else {
-        selectedValue
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 58.dp)
-            .clickable(enabled = enabled) { showDialog = true }
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .alpha(if (enabled) 1f else 0.45f),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
-            color = TextPrimary,
-            modifier = Modifier.weight(1f)
-        )
-
-        ValueBadge(text = displayLabel, isEmpty = displayLabel.isBlank())
-
-        Icon(
-            imageVector = Icons.Rounded.ChevronRight,
-            contentDescription = null,
-            tint = TextSecondary,
-            modifier = Modifier.size(20.dp)
-        )
-    }
-
-    if (showDialog) {
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            containerColor = DarkGreyDialog,
-            titleContentColor = TextPrimary,
-            shape = RoundedCornerShape(20.dp),
-            title = {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    values.forEachIndexed { index, value ->
-                        val entryLabel = entries.getOrElse(index) { value }
-                        val isSelected = value == selectedValue
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(
-                                    if (isSelected) AccentBlue.copy(alpha = 0.14f) else Color.Transparent
-                                )
-                                .selectable(
-                                    selected = isSelected,
-                                    role = Role.RadioButton,
-                                    onClick = {
-                                        onSelected(value)
-                                        showDialog = false
-                                    }
-                                )
-                                .padding(horizontal = 12.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            RadioButton(
-                                selected = isSelected,
-                                onClick = null,
-                                colors = RadioButtonDefaults.colors(
-                                    selectedColor = AccentBlue,
-                                    unselectedColor = TextSecondary
-                                )
-                            )
-                            Text(
-                                text = entryLabel,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = if (isSelected) AccentBlue else TextPrimary,
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text(
-                        text = stringResource(android.R.string.cancel),
-                        color = TextSecondary
-                    )
-                }
-            }
-        )
-    }
-}
-@Composable
-private fun DarkEditRow(
-    title: String,
-    value: String,
-    onValueChanged: (String) -> Unit,
-    enabled: Boolean = true,
-    keyboardNumber: Boolean = false,
-    isPassword: Boolean = false
-) {
-    var showDialog by remember { mutableStateOf(false) }
-
-    val displayValue = when {
-        value.isBlank() -> "—"
-        isPassword -> "•".repeat(value.length.coerceAtMost(8))
-        else -> value
-    }
-
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 58.dp)
-            .clickable(enabled = enabled) { showDialog = true }
-            .padding(horizontal = 16.dp, vertical = 12.dp)
-            .alpha(if (enabled) 1f else 0.45f),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
-            color = TextPrimary,
-            modifier = Modifier.weight(1f)
-        )
-
-        ValueBadge(text = displayValue, isEmpty = value.isBlank())
-
-        Icon(
-            imageVector = Icons.Rounded.ChevronRight,
-            contentDescription = null,
-            tint = TextSecondary,
-            modifier = Modifier.size(20.dp)
-        )
-    }
-
-    if (showDialog) {
-        var draft by remember(value) { mutableStateOf(value) }
-        var passwordVisible by remember { mutableStateOf(false) }
-
-        AlertDialog(
-            onDismissRequest = { showDialog = false },
-            containerColor = DarkGreyDialog,
-            titleContentColor = TextPrimary,
-            shape = RoundedCornerShape(20.dp),
-            title = {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
-            },
-            text = {
-                OutlinedTextField(
-                    value = draft,
-                    onValueChange = { draft = it },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = when {
-                            keyboardNumber -> KeyboardType.Number
-                            isPassword -> KeyboardType.Password
-                            else -> KeyboardType.Text
-                        }
-                    ),
-                    visualTransformation = if (isPassword && !passwordVisible) {
-                        PasswordVisualTransformation()
-                    } else {
-                        VisualTransformation.None
-                    },
-                    trailingIcon = {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (isPassword && draft.isNotEmpty()) {
-                                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                    Icon(
-                                        imageVector = if (passwordVisible) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-                                        contentDescription = null,
-                                        tint = TextSecondary
-                                    )
-                                }
-                            }
-                            if (draft.isNotEmpty()) {
-                                IconButton(onClick = { draft = "" }) {
-                                    Icon(
-                                        imageVector = Icons.Rounded.Clear,
-                                        contentDescription = null,
-                                        tint = TextSecondary
-                                    )
-                                }
-                            }
-                        }
-                    },
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = AccentBlue,
-                        unfocusedBorderColor = DarkGreyBorder,
-                        focusedContainerColor = DarkGreySurface,
-                        unfocusedContainerColor = DarkGreySurface,
-                        focusedTextColor = TextPrimary,
-                        unfocusedTextColor = TextPrimary,
-                        cursorColor = AccentBlue
-                    )
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        onValueChanged(draft.trim())
-                        showDialog = false
-                    }
-                ) {
-                    Text(
-                        text = stringResource(android.R.string.ok),
-                        color = AccentBlue,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDialog = false }) {
-                    Text(
-                        text = stringResource(android.R.string.cancel),
-                        color = TextSecondary
-                    )
-                }
-            }
-        )
-    }
-}
-
-@Composable
-private fun ValueBadge(
-    text: String,
-    isEmpty: Boolean
-) {
-    Surface(
-        shape = RoundedCornerShape(8.dp),
-        color = DarkGreySurfaceElevated,
-        border = BorderStroke(1.dp, DarkGreyBorder),
-        modifier = Modifier.widthIn(max = 150.dp)
-    ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = if (isEmpty) TextMuted else AccentBlue,
-            fontWeight = FontWeight.Medium,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-        )
     }
 }
 @Composable
@@ -1212,29 +416,15 @@ private fun QuickModeAndActionsBar(
         border = BorderStroke(1.dp, DarkGreyBorder),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = stringResource(R.string.title_mode),
-                style = MaterialTheme.typography.labelMedium,
-                color = TextSecondary
-            )
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Text(text = stringResource(R.string.title_mode), style = MaterialTheme.typography.labelMedium, color = TextSecondary)
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 modeValues.forEachIndexed { index, value ->
                     val label = modeEntries.getOrElse(index) { value }
                     val isSelected = value == selectedMode
-
                     FilledTonalButton(
                         onClick = { onModeSelected(value) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(46.dp),
+                        modifier = Modifier.weight(1f).height(46.dp),
                         shape = RoundedCornerShape(12.dp),
                         contentPadding = PaddingValues(horizontal = 10.dp),
                         colors = ButtonDefaults.filledTonalButtonColors(
@@ -1243,81 +433,32 @@ private fun QuickModeAndActionsBar(
                         )
                     ) {
                         if (isSelected) {
-                            Icon(
-                                imageVector = Icons.Rounded.Shield,
-                                contentDescription = null,
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Box(modifier = Modifier.size(8.dp).clip(CircleShape).background(Color(0xFF0B1424)))
+                            Spacer(Modifier.width(8.dp))
                         }
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelLarge,
-                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        Text(label, style = MaterialTheme.typography.labelLarge, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (systemVpnSettingsAvailable) {
                     FilledTonalButton(
                         onClick = onSystemVpnSettingsClicked,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(44.dp),
+                        modifier = Modifier.weight(1f).height(44.dp),
                         shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = DarkGreySurfaceElevated,
-                            contentColor = TextPrimary
-                        )
+                        colors = ButtonDefaults.filledTonalButtonColors(containerColor = DarkGreySurfaceElevated, contentColor = TextPrimary)
                     ) {
-                        Icon(
-                            imageVector = Icons.Rounded.VpnKey,
-                            contentDescription = null,
-                            tint = AccentBlue,
-                            modifier = Modifier.size(18.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.title_system_vpn_settings),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                        Text(stringResource(R.string.title_system_vpn_settings), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
-
                 FilledTonalButton(
                     onClick = onModeHelpClicked,
-                    modifier = Modifier
-                        .let { if (systemVpnSettingsAvailable) it.width(48.dp) else it.fillMaxWidth() }
-                        .height(44.dp),
+                    modifier = Modifier.let { if (systemVpnSettingsAvailable) it.width(48.dp) else it.fillMaxWidth() }.height(44.dp),
                     shape = RoundedCornerShape(12.dp),
                     contentPadding = PaddingValues(horizontal = 12.dp),
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = DarkGreySurfaceElevated,
-                        contentColor = TextPrimary
-                    )
+                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = DarkGreySurfaceElevated, contentColor = TextPrimary)
                 ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Rounded.HelpOutline,
-                        contentDescription = stringResource(R.string.title_mode_help),
-                        tint = AccentBlue,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    if (!systemVpnSettingsAvailable) {
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = stringResource(R.string.title_mode_help),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
+                    Text(if (systemVpnSettingsAvailable) "?" else stringResource(R.string.title_mode_help), fontWeight = FontWeight.Bold, color = AccentBlue, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }
@@ -1331,11 +472,7 @@ private fun SettingsSectionCard(
     onExpandedChange: (Boolean) -> Unit,
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val arrowRotation by animateFloatAsState(
-        targetValue = if (expanded) 180f else 0f,
-        label = "section_arrow_rotation"
-    )
-
+    val arrowRotation by animateFloatAsState(targetValue = if (expanded) 180f else 0f, label = "section_arrow")
     Surface(
         shape = RoundedCornerShape(16.dp),
         color = DarkGreySurface,
@@ -1344,56 +481,18 @@ private fun SettingsSectionCard(
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(54.dp)
-                    .clickable { onExpandedChange(!expanded) }
-                    .padding(horizontal = 16.dp),
+                modifier = Modifier.fillMaxWidth().height(54.dp).clickable { onExpandedChange(!expanded) }.padding(horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(DarkGreySurfaceElevated),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Rounded.ExpandMore,
-                        contentDescription = null,
-                        tint = AccentBlue,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .rotate(arrowRotation)
-                    )
+                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                Box(modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(DarkGreySurfaceElevated), contentAlignment = Alignment.Center) {
+                    ChevronDownGlyph(tint = AccentBlue, modifier = Modifier.size(16.dp).rotate(arrowRotation))
                 }
             }
-
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 6.dp)
-                ) {
-                    HorizontalDivider(
-                        color = DarkGreyBorder,
-                        thickness = 1.dp
-                    )
+            AnimatedVisibility(visible = expanded, enter = expandVertically() + fadeIn(), exit = shrinkVertically() + fadeOut()) {
+                Column(modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+                    HorizontalDivider(color = DarkGreyBorder, thickness = 1.dp, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
                     content()
                 }
             }
@@ -1402,50 +501,31 @@ private fun SettingsSectionCard(
 }
 
 @Composable
-private fun ActionPillButton(
-    title: String,
-    icon: ImageVector,
-    onClick: () -> Unit,
-    subtitle: String? = null
-) {
+private fun ActionPillButton(title: String, onClick: () -> Unit, subtitle: String? = null) {
     FilledTonalButton(
         onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 14.dp, vertical = 8.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 6.dp),
         shape = RoundedCornerShape(12.dp),
         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        colors = ButtonDefaults.filledTonalButtonColors(
-            containerColor = DarkGreySurfaceElevated,
-            contentColor = TextPrimary
-        )
+        colors = ButtonDefaults.filledTonalButtonColors(containerColor = DarkGreySurfaceElevated, contentColor = TextPrimary)
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                tint = AccentBlue,
-                modifier = Modifier.size(22.dp)
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = TextPrimary
-                )
-                if (!subtitle.isNullOrBlank()) {
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = TextSecondary
-                    )
-                }
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Text(title, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = AccentBlue)
+            if (!subtitle.isNullOrBlank()) {
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
             }
         }
+    }
+}
+
+@Composable
+private fun ChevronDownGlyph(tint: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val path = Path().apply {
+            moveTo(size.width * 0.2f, size.height * 0.35f)
+            lineTo(size.width * 0.5f, size.height * 0.68f)
+            lineTo(size.width * 0.8f, size.height * 0.35f)
+        }
+        drawPath(path = path, color = tint, style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
     }
 }
