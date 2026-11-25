@@ -20,13 +20,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
 import androidx.lifecycle.lifecycleScope
 import com.v2ray.ang.AppConfig.BUILTIN_OUTBOUND_TAGS
 import com.v2ray.ang.AppConfig.TAG_PROXY
@@ -41,21 +39,15 @@ import com.v2ray.ang.ui.compose.DeleteConfirmDialog
 import com.v2ray.ang.ui.compose.NavigationBarsSpacer
 import com.v2ray.ang.ui.compose.ServerSelectListDialog
 import com.v2ray.ang.ui.compose.verticalScrollbar
+import com.v2ray.ang.ui.theme.ProxymaTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.UUID
 
-private val BgDarkTop = Color(0xFF0B0F19)
-private val BgDarkBottom = Color(0xFF131B2E)
-private val CardSurface = Color(0xFF1A233A)
-private val CardBorder = Color(0xFF2B395C)
-private val AccentCyan = Color(0xFF00E5FF)
 private val AccentIndigo = Color(0xFF6366F1)
 private val ConnectedGreen = Color(0xFF10B981)
 private val BlockRed = Color(0xFFEF4444)
-private val TextPrimary = Color(0xFFF8FAFC)
-private val TextSecondary = Color(0xFF94A3B8)
 
 private val ROUTING_NETWORK_OPTIONS = listOf("tcp,udp", "tcp", "udp")
 
@@ -123,16 +115,6 @@ fun RoutingEditScreen(
     val processSelectTitle = stringResource(R.string.routing_settings_process_select)
     val scrollState = rememberScrollState()
 
-    val view = LocalView.current
-    if (!view.isInEditMode) {
-        SideEffect {
-            val window = (view.context as? Activity)?.window
-            if (window != null) {
-                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
-            }
-        }
-    }
-
     var remarks by rememberSaveable { mutableStateOf(initial?.remarks ?: "") }
     var isRemarksError by rememberSaveable { mutableStateOf(false) }
     var locked by rememberSaveable { mutableStateOf(initial?.locked == true) }
@@ -197,15 +179,17 @@ fun RoutingEditScreen(
             onSave(buildRuleset())
         }
     }
-
-    Box(
+        Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(BgDarkTop, BgDarkBottom)))
+            .background(
+                Brush.verticalGradient(
+                    listOf(ProxymaTheme.colors.bgTop, ProxymaTheme.colors.bgBottom)
+                )
+            )
             .statusBarsPadding()
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
-            // Верхняя панель
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -217,7 +201,7 @@ fun RoutingEditScreen(
                     IconButton(onClick = onBackClick) {
                         Text(
                             text = "←",
-                            color = TextPrimary,
+                            color = ProxymaTheme.colors.textPrimary,
                             fontSize = 22.sp,
                             fontWeight = FontWeight.Bold
                         )
@@ -225,13 +209,13 @@ fun RoutingEditScreen(
                     Column {
                         Text(
                             text = if (position >= 0) "Редактирование правила" else "Новое правило",
-                            color = TextPrimary,
+                            color = ProxymaTheme.colors.textPrimary,
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = "Настройка маршрутизации трафика",
-                            color = AccentCyan,
+                            color = ProxymaTheme.colors.accentCyan,
                             fontSize = 11.sp
                         )
                     }
@@ -266,12 +250,11 @@ fun RoutingEditScreen(
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Карточка основных параметров
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
-                    color = CardSurface,
-                    border = BorderStroke(1.dp, CardBorder)
+                    color = ProxymaTheme.colors.cardSurface,
+                    border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -288,10 +271,9 @@ fun RoutingEditScreen(
                             isError = isRemarksError
                         )
 
-                        // Выбор направления трафика (Через VPN / Без VPN / Блокировать)
                         Text(
                             text = "Куда направлять трафик:",
-                            color = TextSecondary,
+                            color = ProxymaTheme.colors.textSecondary,
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium
                         )
@@ -303,7 +285,7 @@ fun RoutingEditScreen(
                             OutboundChip(
                                 title = "Через VPN",
                                 selected = outboundTag.equals("proxy", ignoreCase = true),
-                                color = AccentCyan,
+                                color = ProxymaTheme.colors.accentCyan,
                                 modifier = Modifier.weight(1f),
                                 onClick = { outboundTag = "proxy" }
                             )
@@ -328,11 +310,11 @@ fun RoutingEditScreen(
                                 onClick = { showOutboundDialog = true },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(12.dp),
-                                border = BorderStroke(1.dp, CardBorder)
+                                border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
                             ) {
                                 Text(
                                     text = "Тег выхода: $outboundTag (выбрать сервер)",
-                                    color = TextSecondary,
+                                    color = ProxymaTheme.colors.textSecondary,
                                     fontSize = 12.sp
                                 )
                             }
@@ -350,13 +332,13 @@ fun RoutingEditScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
                                     text = "Закрепить правило",
-                                    color = TextPrimary,
+                                    color = ProxymaTheme.colors.textPrimary,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Text(
                                     text = "Сохранится при сбросе или импорте набора правил",
-                                    color = TextSecondary,
+                                    color = ProxymaTheme.colors.textSecondary,
                                     fontSize = 11.sp
                                 )
                             }
@@ -366,19 +348,18 @@ fun RoutingEditScreen(
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = Color.White,
                                     checkedTrackColor = AccentIndigo,
-                                    uncheckedThumbColor = TextSecondary,
-                                    uncheckedTrackColor = BgDarkTop
+                                    uncheckedThumbColor = ProxymaTheme.colors.textSecondary,
+                                    uncheckedTrackColor = ProxymaTheme.colors.bgTop
                                 )
                             )
                         }
                     }
                 }
-                                // Карточка условий срабатывания
-                Surface(
+                                Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedCornerShape(18.dp),
-                    color = CardSurface,
-                    border = BorderStroke(1.dp, CardBorder)
+                    color = ProxymaTheme.colors.cardSurface,
+                    border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
                 ) {
                     Column(
                         modifier = Modifier.padding(16.dp),
@@ -386,7 +367,7 @@ fun RoutingEditScreen(
                     ) {
                         Text(
                             text = "Условия срабатывания (через запятую):",
-                            color = AccentCyan,
+                            color = ProxymaTheme.colors.accentCyan,
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -421,7 +402,7 @@ fun RoutingEditScreen(
 
                         Text(
                             text = "Тип сети:",
-                            color = TextSecondary,
+                            color = ProxymaTheme.colors.textSecondary,
                             fontSize = 12.sp
                         )
                         Row(
@@ -462,7 +443,11 @@ fun RoutingEditScreen(
                                     )
                                 }
                             ) {
-                                Text("📱 Выбрать из установленных приложений", color = AccentCyan, fontSize = 13.sp)
+                                Text(
+                                    "📱 Выбрать из установленных приложений",
+                                    color = ProxymaTheme.colors.accentCyan,
+                                    fontSize = 13.sp
+                                )
                             }
                         }
                     }
@@ -488,8 +473,7 @@ fun RoutingEditScreen(
                 NavigationBarsSpacer()
             }
         }
-
-        if (showDeleteConfirm) {
+                if (showDeleteConfirm) {
             DeleteConfirmDialog(
                 message = stringResource(R.string.confirm_delete_routing_rule),
                 itemName = initial?.remarks.orEmpty(),
@@ -525,10 +509,10 @@ private fun OutboundChip(
             .clip(RoundedCornerShape(12.dp))
             .clickable { onClick() },
         shape = RoundedCornerShape(12.dp),
-        color = if (selected) color.copy(alpha = 0.2f) else BgDarkTop.copy(alpha = 0.6f),
+        color = if (selected) color.copy(alpha = 0.2f) else ProxymaTheme.colors.bgTop.copy(alpha = 0.6f),
         border = BorderStroke(
             width = if (selected) 1.5.dp else 1.dp,
-            color = if (selected) color else CardBorder
+            color = if (selected) color else ProxymaTheme.colors.cardBorder
         )
     ) {
         Box(
@@ -537,7 +521,7 @@ private fun OutboundChip(
         ) {
             Text(
                 text = title,
-                color = if (selected) color else TextSecondary,
+                color = if (selected) color else ProxymaTheme.colors.textSecondary,
                 fontSize = 12.sp,
                 fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium
             )
@@ -558,18 +542,24 @@ private fun ProxymaTextField(
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth(),
         label = { Text(label, fontSize = 12.sp) },
-        placeholder = { Text(placeholder, color = TextSecondary.copy(alpha = 0.6f), fontSize = 12.sp) },
+        placeholder = {
+            Text(
+                placeholder,
+                color = ProxymaTheme.colors.textSecondary.copy(alpha = 0.6f),
+                fontSize = 12.sp
+            )
+        },
         isError = isError,
         singleLine = true,
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = TextPrimary,
-            unfocusedTextColor = TextPrimary,
-            focusedBorderColor = AccentCyan,
-            unfocusedBorderColor = CardBorder,
-            focusedLabelColor = AccentCyan,
-            unfocusedLabelColor = TextSecondary,
-            cursorColor = AccentCyan
+            focusedTextColor = ProxymaTheme.colors.textPrimary,
+            unfocusedTextColor = ProxymaTheme.colors.textPrimary,
+            focusedBorderColor = ProxymaTheme.colors.accentCyan,
+            unfocusedBorderColor = ProxymaTheme.colors.cardBorder,
+            focusedLabelColor = ProxymaTheme.colors.accentCyan,
+            unfocusedLabelColor = ProxymaTheme.colors.textSecondary,
+            cursorColor = ProxymaTheme.colors.accentCyan
         )
     )
 }
