@@ -312,7 +312,7 @@ fun MainScreen(
             }
         )
     }
-
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
