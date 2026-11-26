@@ -49,14 +49,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.core.LauncherManager
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.MmkvManager.rememberMmkvBool
 import com.v2ray.ang.handler.MmkvManager.rememberMmkvString
 import com.v2ray.ang.handler.SettingsManager
-import com.v2ray.ang.handler.V2RayServiceManager
+import com.v2ray.ang.service.V2RayServiceManager
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.NavigationBarsSpacer
 import com.v2ray.ang.ui.theme.ProxymaTheme
@@ -127,7 +126,7 @@ fun LanSharingScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val isVpnRunning by V2RayServiceManager.isRunning.collectAsStateWithLifecycle()
+    val isVpnRunning = remember { V2RayServiceManager.isRunning() }
 
     var proxySharing by rememberMmkvBool(AppConfig.PREF_PROXY_SHARING, false)
     var socksPort by rememberMmkvString(AppConfig.PREF_SOCKS_PORT, AppConfig.PORT_SOCKS)
