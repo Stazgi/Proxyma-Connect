@@ -1087,7 +1087,6 @@ private fun QuickModeAndActionsBar(
     }
 }
 @Composable
-@Composable
 private fun SettingsSectionCard(
     icon: ImageVector = Icons.Rounded.Code,
     title: String,
