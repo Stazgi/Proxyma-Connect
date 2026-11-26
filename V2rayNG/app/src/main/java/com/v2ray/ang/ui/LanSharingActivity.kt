@@ -376,7 +376,7 @@ fun LanSharingScreen(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        color = ProxymaTheme.colors.accentCyan.copy(alpha = 0.12f)
+                        color = ProxymaTheme.colors.accentCyan.copy(alpha = 0.12f),
                         border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
                     ) {
                         val statusMessage = when {
