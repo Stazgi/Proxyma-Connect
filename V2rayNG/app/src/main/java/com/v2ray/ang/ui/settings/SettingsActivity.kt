@@ -1087,8 +1087,11 @@ private fun QuickModeAndActionsBar(
     }
 }
 @Composable
+@Composable
 private fun SettingsSectionCard(
+    icon: ImageVector = Icons.Rounded.Code,
     title: String,
+    subtitle: String? = null,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     content: @Composable ColumnScope.() -> Unit
@@ -1108,38 +1111,59 @@ private fun SettingsSectionCard(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(54.dp)
                     .clickable { onExpandedChange(!expanded) }
-                    .padding(horizontal = 16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = ProxymaTheme.colors.textPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-
                 Box(
                     modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(8.dp))
+                        .size(38.dp)
+                        .clip(RoundedCornerShape(10.dp))
                         .background(ProxymaTheme.colors.bgBottom),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.ExpandMore,
+                        imageVector = icon,
                         contentDescription = null,
                         tint = ProxymaTheme.colors.accentCyan,
-                        modifier = Modifier
-                            .size(20.dp)
-                            .rotate(arrowRotation)
+                        modifier = Modifier.size(20.dp)
                     )
                 }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        color = ProxymaTheme.colors.textPrimary,
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (!subtitle.isNullOrBlank()) {
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = subtitle,
+                            color = ProxymaTheme.colors.textSecondary,
+                            fontSize = 12.sp,
+                            lineHeight = 16.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Icon(
+                    imageVector = Icons.Rounded.ExpandMore,
+                    contentDescription = null,
+                    tint = ProxymaTheme.colors.textSecondary,
+                    modifier = Modifier
+                        .size(20.dp)
+                        .rotate(arrowRotation)
+                )
             }
 
             AnimatedVisibility(
