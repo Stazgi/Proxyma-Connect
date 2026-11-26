@@ -18,6 +18,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Bolt
+import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.PowerSettingsNew
+import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -498,66 +505,148 @@ private fun SubscriptionStatusCard(
         groupRemarks
     }
 
+    val subInfo = MmkvManager.decodeSettingsString("proxyma_sub_info")
+        .orEmpty()
+        .ifBlank { "Ключ активен • Нажмите обновить для проверки" }
+
+    val progressFraction = remember(subInfo) {
+        val match = Regex("""([0-9]+(?:\.[0-9]+)?)\s*из\s*([0-9]+(?:\.[0-9]+)?)""").find(subInfo)
+        if (match != null) {
+            val left = match.groupValues[1].toFloatOrNull() ?: 0f
+            val total = match.groupValues[2].toFloatOrNull() ?: 0f
+            if (total > 0f) (left / total).coerceIn(0f, 1f) else null
+        } else {
+            null
+        }
+    }
+
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(20.dp),
         color = ProxymaTheme.colors.cardSurface,
         border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
     ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    color = ProxymaTheme.colors.textPrimary,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                val subInfo = MmkvManager.decodeSettingsString("proxyma_sub_info")
-                    .orEmpty()
-                    .ifBlank { "Ключ активен • Нажмите ↻ для обновления" }
-                Text(
-                    text = subInfo,
-                    color = ProxymaTheme.colors.accentCyan,
-                    fontSize = 12.sp,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        color = ProxymaTheme.colors.accentCyan,
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    IconButton(onClick = onRefresh) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(ProxymaTheme.colors.accentCyan.copy(alpha = 0.14f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Shield,
+                            contentDescription = null,
+                            tint = ProxymaTheme.colors.accentCyan,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "↻",
-                            color = ProxymaTheme.colors.accentCyan,
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold
+                            text = title,
+                            color = ProxymaTheme.colors.textPrimary,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = subInfo,
+                            color = ProxymaTheme.colors.textSecondary,
+                            fontSize = 12.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
-                IconButton(onClick = onDeleteSub) {
-                    Text(
-                        text = "✕",
-                        color = Color(0xFFEF4444),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Surface(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .clickable(enabled = !isLoading) { onRefresh() },
+                        shape = CircleShape,
+                        color = ProxymaTheme.colors.bgTop.copy(alpha = 0.7f),
+                        border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(16.dp),
+                                    color = ProxymaTheme.colors.accentCyan,
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = Icons.Rounded.Refresh,
+                                    contentDescription = "Обновить подписку",
+                                    tint = ProxymaTheme.colors.accentCyan,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    Surface(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .clickable { onDeleteSub() },
+                        shape = CircleShape,
+                        color = Color(0xFFEF4444).copy(alpha = 0.12f),
+                        border = BorderStroke(1.dp, Color(0xFFEF4444).copy(alpha = 0.3f))
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Icon(
+                                imageVector = Icons.Rounded.Close,
+                                contentDescription = "Выйти",
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
+            if (progressFraction != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(5.dp)
+                        .clip(CircleShape)
+                        .background(ProxymaTheme.colors.bgTop)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth(progressFraction)
+                            .fillMaxHeight()
+                            .clip(CircleShape)
+                            .background(
+                                Brush.horizontalGradient(
+                                    listOf(ProxymaTheme.colors.accentCyan, ConnectedGreen)
+                                )
+                            )
                     )
                 }
             }
         }
     }
 }
+
 @Composable
 private fun EmptyActivationCard(
     onScanQr: () -> Unit,
@@ -720,76 +809,140 @@ private fun PowerConnectButton(
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseScale by infiniteTransition.animateFloat(
         initialValue = 1f,
-        targetValue = if (isRunning) 1.08f else 1.02f,
+        targetValue = if (isRunning) 1.12f else 1.03f,
         animationSpec = infiniteRepeatable(
-            animation = tween(1400),
+            animation = tween(1600),
             repeatMode = RepeatMode.Reverse
         ),
         label = "scale"
     )
 
-    val ringColor by animateColorAsState(
+    val primaryGlow by animateColorAsState(
         targetValue = if (isRunning) ConnectedGreen else AccentIndigo,
-        animationSpec = tween(400),
-        label = "ringColor"
+        animationSpec = tween(450),
+        label = "primaryGlow"
+    )
+
+    val secondaryGlow by animateColorAsState(
+        targetValue = if (isRunning) Color(0xFF34D399) else ProxymaTheme.colors.accentCyan,
+        animationSpec = tween(450),
+        label = "secondaryGlow"
     )
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(contentAlignment = Alignment.Center) {
+        Box(
+            modifier = Modifier.size(184.dp),
+            contentAlignment = Alignment.Center
+        ) {
             Box(
                 modifier = Modifier
-                    .size(164.dp)
+                    .size(172.dp)
                     .scale(pulseScale)
                     .clip(CircleShape)
-                    .background(ringColor.copy(alpha = 0.16f))
+                    .background(
+                        Brush.radialGradient(
+                            colors = listOf(
+                                primaryGlow.copy(alpha = if (isRunning) 0.32f else 0.18f),
+                                Color.Transparent
+                            )
+                        )
+                    )
             )
+
             Surface(
-                modifier = Modifier
-                    .size(134.dp)
-                    .clip(CircleShape)
-                    .clickable { onToggle() },
+                modifier = Modifier.size(148.dp),
                 shape = CircleShape,
-                color = if (isRunning) ConnectedGreen else ProxymaTheme.colors.cardSurface,
-                border = BorderStroke(3.dp, ringColor),
-                shadowElevation = 12.dp
+                color = Color.Transparent,
+                border = BorderStroke(
+                    width = 1.5.dp,
+                    brush = Brush.linearGradient(
+                        listOf(
+                            secondaryGlow.copy(alpha = 0.65f),
+                            primaryGlow.copy(alpha = 0.25f)
+                        )
+                    )
+                )
+            ) {}
+
+            Box(
+                modifier = Modifier
+                    .size(128.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isRunning) {
+                            Brush.linearGradient(
+                                listOf(Color(0xFF059669), ConnectedGreen, Color(0xFF34D399))
+                            )
+                        } else {
+                            Brush.linearGradient(
+                                listOf(ProxymaTheme.colors.cardSurface, ProxymaTheme.colors.bgTop)
+                            )
+                        }
+                    )
+                    .clickable { onToggle() },
+                contentAlignment = Alignment.Center
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (isLoading) {
-                        CircularProgressIndicator(
-                            color = if (isRunning) Color.White else ProxymaTheme.colors.accentCyan,
-                            modifier = Modifier.size(42.dp)
-                        )
-                    } else if (isRunning) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_proxyma_mono),
-                            contentDescription = "Защита включена",
-                            tint = Color.White,
-                            modifier = Modifier.size(54.dp)
-                        )
-                    } else {
-                        Text(
-                            text = "Выкл",
-                            color = ProxymaTheme.colors.textPrimary,
-                            fontSize = 26.sp,
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = 2.sp
-                        )
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    shape = CircleShape,
+                    color = Color.Transparent,
+                    border = BorderStroke(
+                        width = 2.dp,
+                        color = if (isRunning) Color.White.copy(alpha = 0.35f) else secondaryGlow.copy(alpha = 0.5f)
+                    )
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(44.dp),
+                                strokeWidth = 3.dp
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Rounded.PowerSettingsNew,
+                                contentDescription = if (isRunning) "Отключить VPN" else "Подключить VPN",
+                                tint = if (isRunning) Color.White else ProxymaTheme.colors.accentCyan,
+                                modifier = Modifier.size(54.dp)
+                            )
+                        }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(14.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
-        Text(
-            text = if (isRunning) "ЗАЩИТА ВКЛЮЧЕНА" else "Подключиться",
-            color = if (isRunning) ConnectedGreen else ProxymaTheme.colors.textSecondary,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold,
-            letterSpacing = 1.sp
-        )
+        Surface(
+            shape = CircleShape,
+            color = if (isRunning) ConnectedGreen.copy(alpha = 0.14f) else ProxymaTheme.colors.cardSurface,
+            border = BorderStroke(
+                1.dp,
+                if (isRunning) ConnectedGreen.copy(alpha = 0.45f) else ProxymaTheme.colors.cardBorder
+            )
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(if (isRunning) ConnectedGreen else ProxymaTheme.colors.textSecondary)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = if (isRunning) "ЗАЩИТА ВКЛЮЧЕНА" else "ГОТОВО К ПОДКЛЮЧЕНИЮ",
+                    color = if (isRunning) ConnectedGreen else ProxymaTheme.colors.textPrimary,
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 0.8.sp
+                )
+            }
+        }
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(6.dp))
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -798,8 +951,17 @@ private fun PowerConnectButton(
                 .clickable { if (isRunning) onTestPing() }
                 .padding(horizontal = 10.dp, vertical = 4.dp)
         ) {
+            if (isRunning) {
+                Icon(
+                    imageVector = Icons.Rounded.Bolt,
+                    contentDescription = null,
+                    tint = Color(0xFFFBBF24),
+                    modifier = Modifier.size(15.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+            }
             Text(
-                text = if (isRunning) "⚡ $statusText" else statusText,
+                text = statusText,
                 color = ProxymaTheme.colors.textSecondary,
                 fontSize = 12.sp,
                 textAlign = TextAlign.Center
@@ -807,6 +969,7 @@ private fun PowerConnectButton(
         }
     }
 }
+
 @Composable
 private fun ServerLocationCard(
     name: String,
@@ -815,16 +978,23 @@ private fun ServerLocationCard(
     isSelected: Boolean,
     onClick: () -> Unit
 ) {
+    val pingColor = when {
+        delayMillis in 1..150 -> ConnectedGreen
+        delayMillis in 151..350 -> Color(0xFFFBBF24)
+        delayMillis > 350 -> Color(0xFFF87171)
+        else -> ProxymaTheme.colors.textSecondary
+    }
+
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
+            .clip(RoundedCornerShape(18.dp))
             .clickable { onClick() },
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(18.dp),
         color = if (isSelected) {
-            ProxymaTheme.colors.cardSurface
+            ProxymaTheme.colors.accentCyan.copy(alpha = 0.08f)
         } else {
-            ProxymaTheme.colors.cardSurface.copy(alpha = 0.65f)
+            ProxymaTheme.colors.cardSurface.copy(alpha = 0.75f)
         },
         border = BorderStroke(
             width = if (isSelected) 1.5.dp else 1.dp,
@@ -841,24 +1011,43 @@ private fun ServerLocationCard(
                     text = name,
                     color = ProxymaTheme.colors.textPrimary,
                     fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = if (delayMillis > 0) "Пинг: ${delayMillis} мс" else "Протокол $protocol",
-                    color = if (delayMillis > 0) ConnectedGreen else ProxymaTheme.colors.textSecondary,
-                    fontSize = 12.sp
-                )
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = ProxymaTheme.colors.bgTop.copy(alpha = 0.85f),
+                        border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
+                    ) {
+                        Text(
+                            text = protocol.uppercase(),
+                            color = ProxymaTheme.colors.accentCyan,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 2.dp)
+                        )
+                    }
+                    if (delayMillis > 0) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "• ${delayMillis} мс",
+                            color = pingColor,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
             }
 
             if (isSelected) {
-                Text(
-                    text = "✓",
-                    color = ProxymaTheme.colors.accentCyan,
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold
+                Icon(
+                    imageVector = Icons.Rounded.CheckCircle,
+                    contentDescription = "Выбрано",
+                    tint = ProxymaTheme.colors.accentCyan,
+                    modifier = Modifier.size(22.dp)
                 )
             }
         }
