@@ -32,7 +32,7 @@ import com.v2ray.ang.ui.compose.NavigationBarsSpacer
 import com.v2ray.ang.ui.theme.ProxymaTheme
 import com.v2ray.ang.util.Utils
 
-private const val PROXYMA_REPO_URL = "https://github.com"
+private const val PROXYMA_REPO_URL = "https://github.com/Stazgi/Proxyma-Connect"
 private const val PROXYMA_PRIVACY_URL = "https://github.com/blob/master/PRIVACY.md"
 
 class AboutActivity : BaseComponentActivity() {
