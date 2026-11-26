@@ -64,7 +64,6 @@ import java.util.UUID
 
 private val AccentIndigo = Color(0xFF6366F1)
 private val ConnectedGreen = Color(0xFF10B981)
-private val InfoCardBlue = Color(0xFF1D2736)
 
 private data class LanEndpoint(
     val label: String,
@@ -281,7 +280,7 @@ fun LanSharingScreen(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(18.dp),
-                        color = InfoCardBlue,
+                        color = ProxymaTheme.colors.accentCyan.copy(alpha = 0.12f),
                         border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
                     ) {
                         Column(
@@ -377,7 +376,7 @@ fun LanSharingScreen(
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(16.dp),
-                        color = InfoCardBlue,
+                        color = ProxymaTheme.colors.accentCyan.copy(alpha = 0.12f)
                         border = BorderStroke(1.dp, ProxymaTheme.colors.cardBorder)
                     ) {
                         val statusMessage = when {
