@@ -55,7 +55,6 @@ import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.MmkvManager.rememberMmkvBool
 import com.v2ray.ang.handler.MmkvManager.rememberMmkvString
 import com.v2ray.ang.handler.SettingsManager
-import com.v2ray.ang.service.V2RayServiceManager
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.NavigationBarsSpacer
 import com.v2ray.ang.ui.theme.ProxymaTheme
@@ -121,12 +120,23 @@ private fun detectLanEndpoint(): LanEndpoint? {
 
 private fun generateRandomUser(): String = "proxyma_" + UUID.randomUUID().toString().take(8)
 private fun generateRandomPass(): String = UUID.randomUUID().toString().replace("-", "").take(14)
+
 @Composable
 fun LanSharingScreen(
     onBackClick: () -> Unit
 ) {
     val context = LocalContext.current
-    val isVpnRunning = remember { V2RayServiceManager.isRunning() }
+        val isVpnRunning = remember {
+        try {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+            @Suppress("DEPRECATION")
+            cm.allNetworks.any { network ->
+                cm.getNetworkCapabilities(network)?.hasTransport(android.net.NetworkCapabilities.TRANSPORT_VPN) == true
+            }
+        } catch (_: Exception) {
+            false
+        }
+     }
 
     var proxySharing by rememberMmkvBool(AppConfig.PREF_PROXY_SHARING, false)
     var socksPort by rememberMmkvString(AppConfig.PREF_SOCKS_PORT, AppConfig.PORT_SOCKS)
